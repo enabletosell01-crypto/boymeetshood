@@ -260,9 +260,16 @@ function renderNode(node: DcNode, vals: Vals, scope: Scope, key: number): ReactN
   }
 
   // A bound `value` without `onChange` makes React shout about uncontrolled
-  // inputs; the designs wire `onInput`, which fires on the same events.
+  // inputs. One design wires `onInput` instead — React routes both to the same
+  // native event, so promote it rather than leaving both attached and firing
+  // the handler twice per keystroke.
   if ('value' in props && !('onChange' in props)) {
-    props.onChange = typeof props.onInput === 'function' ? props.onInput : () => {};
+    if (typeof props.onInput === 'function') {
+      props.onChange = props.onInput;
+      delete props.onInput;
+    } else {
+      props.onChange = () => {};
+    }
   }
 
   const isVoid = VOID_TAGS.has(tag.toLowerCase());

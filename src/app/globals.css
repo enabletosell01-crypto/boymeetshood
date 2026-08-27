@@ -24,7 +24,8 @@ html[data-hmb-mode='mobile'] body {
 }
 
 /* The designs ask for hidden scrollbars on their carousels via
-   `scrollbar-width:none`; WebKit needs to be told separately. */
-[style*='scrollbar-width:none']::-webkit-scrollbar {
+   `scrollbar-width: none`; WebKit needs to be told separately. Matching on
+   the property alone avoids depending on how the value gets serialised. */
+[style*='scrollbar-width']::-webkit-scrollbar {
   display: none;
 }
