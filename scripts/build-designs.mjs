@@ -98,6 +98,62 @@ function buildDesktop() {
 
 /* ------------------------------------------------------------------- mobile */
 
+/** Reuses the design's own keyframes, so this reads as part of the design. */
+const TBA_BLOCK = `<sc-if value="{{ mintTba }}" hint-placeholder-val="{{ true }}">
+                    <div style="display:flex;flex-direction:column;gap:7px">
+                      <div style="font-family:'Baloo 2',cursive;font-weight:800;font-size:clamp(25px,8.6vw,34px);letter-spacing:-.8px;line-height:1;white-space:nowrap;animation:hmbGlitch 3.2s steps(1,end) infinite">TO BE ANNOUNCED</div>
+                      <div style="display:flex;align-items:center;gap:8px;font-family:'Space Mono',monospace;font-weight:700;font-size:10px;letter-spacing:.22em;color:var(--lime,#c6f511)">
+                        <span style="flex:0 0 auto;width:6px;height:6px;border-radius:50%;background:var(--lime,#c6f511);animation:hmbPulse 2.4s ease-in-out infinite"></span>
+                        <span>STAY TUNED</span>
+                        <span style="flex:0 0 auto;width:7px;height:12px;background:var(--lime,#c6f511);animation:hmbCaret 1.1s steps(1,end) infinite"></span>
+                      </div>
+                    </div>
+                  </sc-if>`;
+
+/**
+ * The handoff hard-codes a placeholder countdown ticking down to a date that
+ * does not exist yet. Rather than deleting it, gate it: the original markup is
+ * kept verbatim behind `mintLive`, with a "to be announced" panel behind
+ * `mintTba`. Setting NEXT_PUBLIC_MINT_AT flips which one renders — see
+ * src/designs/mobile.tsx.
+ */
+function gateCountdown(screen) {
+  const eyebrow = 'GENESIS MINT · ESTIMATED';
+  const rowOpen =
+    `<div style="display:flex;align-items:flex-end;gap:7px;font-family:'Space Mono',monospace;font-weight:700">`;
+
+  let out = replaceOnce(screen, eyebrow, '{{ mintEyebrow }}', 'countdown eyebrow is bound');
+
+  const start = out.indexOf(rowOpen);
+  if (start === -1) throw new Error('patch "gate countdown": countdown row not found');
+
+  // Walk the row's own <div>/</div> pairs to find where it closes.
+  let depth = 0;
+  let cursor = start;
+  let end = -1;
+  const tag = /<(\/?)div\b[^>]*>/g;
+  tag.lastIndex = start;
+  for (let m = tag.exec(out); m; m = tag.exec(out)) {
+    depth += m[1] ? -1 : 1;
+    cursor = m.index + m[0].length;
+    if (depth === 0) {
+      end = cursor;
+      break;
+    }
+  }
+  if (end === -1) throw new Error('patch "gate countdown": countdown row never closes');
+
+  const row = out.slice(start, end);
+  const gated =
+    `<sc-if value="{{ mintLive }}" hint-placeholder-val="{{ false }}">\n                    ` +
+    row +
+    `\n                  </sc-if>\n                  ` +
+    TBA_BLOCK;
+
+  out = out.slice(0, start) + gated + out.slice(end);
+  return out;
+}
+
 /**
  * The mobile handoff is a *canvas*: an explainer column, an <x-import> iPhone
  * bezel around the real screens, and a "jump to screen" column. On a real phone
@@ -130,6 +186,8 @@ function buildMobile() {
     'padding:18px 18px calc(env(safe-area-inset-bottom, 0px) + 22px)',
     'notify sheet clears the home indicator'
   );
+
+  screen = gateCountdown(screen);
 
   // The bezel gave the screen its height; now the viewport does.
   const shell =

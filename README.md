@@ -69,6 +69,23 @@ showed up first, and a `pass_no` already on file survives a re-submit that
 sends none. No IP address is stored; only the coarse country header Vercel
 provides.
 
+## The mint countdown
+
+The hero reads **TO BE ANNOUNCED · STAY TUNED** by default. Set
+`NEXT_PUBLIC_MINT_AT` to an ISO 8601 instant and the handoff's own countdown
+takes over, ticking down to it:
+
+```bash
+NEXT_PUBLIC_MINT_AT=2026-10-01T15:00:00Z
+```
+
+Both treatments live in the template — `scripts/build-designs.mjs` wraps the
+original countdown in `sc-if mintLive` and adds an `sc-if mintTba` panel beside
+it, so neither is ever deleted and the switch is one variable. The value is
+inlined at build time, so changing it needs a redeploy. An unparseable date
+warns in the console and falls back to "to be announced" rather than rendering
+`NaN`.
+
 ## Where the designs live
 
 The two designs came out of [Claude Design](https://claude.ai/design) as
