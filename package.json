@@ -1,0 +1,28 @@
+{
+  "name": "boymeetshood",
+  "version": "1.0.0",
+  "private": true,
+  "description": "HoodMeetsBoy — 4,444 Boys. One Hood. Real Financial Utility.",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "designs": "node scripts/build-designs.mjs"
+  },
+  "dependencies": {
+    "@vercel/blob": "^2.8.0",
+    "htmlparser2": "^12.0.0",
+    "next": "^16.3.3",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.0",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "typescript": "^5.9.0"
+  },
+  "engines": {
+    "node": ">=20.9.0"
+  }
+}

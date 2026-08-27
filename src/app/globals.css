@@ -1,0 +1,30 @@
+/*
+ * Deliberately tiny.
+ *
+ * Both designs were prototyped as plain browser pages, so they assume the
+ * browser's own defaults — a reset here (box-sizing, margins, font stacks)
+ * would silently change the layouts. Each design ships its own CSS and injects
+ * it when it mounts; this file only paints the page before that happens and
+ * teaches the viewport how to hold the app.
+ */
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: #0b0d11;
+}
+
+/* The app design owns the full viewport and scrolls inside itself. */
+html[data-hmb-mode='mobile'],
+html[data-hmb-mode='mobile'] body {
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+/* The designs ask for hidden scrollbars on their carousels via
+   `scrollbar-width:none`; WebKit needs to be told separately. */
+[style*='scrollbar-width:none']::-webkit-scrollbar {
+  display: none;
+}
