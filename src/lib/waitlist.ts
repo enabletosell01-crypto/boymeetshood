@@ -1,20 +1,46 @@
-import { createHmac, timingSafeEqual } from 'node:crypto';
-import { list, put, type ListBlobResult } from '@vercel/blob';
-
-export const BLOB_PREFIX = 'waitlist/v1/';
+import { timingSafeEqual } from 'node:crypto';
+import { neon } from '@neondatabase/serverless';
 
 export type WaitlistEntry = {
+  /** Queue position, 1-based, by arrival. */
+  position: number;
   /** The address exactly as the visitor typed it. */
   wallet: string;
   /** `desktop` (web) or `mobile` (in-app) — which surface they joined from. */
   source: string;
   /** The Hood Pass number the client generated for them, when it sent one. */
   passNo: string | null;
-  /** ISO timestamp of the first successful join. */
-  joinedAt: string;
   /** Coarse geo from Vercel's edge headers. No IP is ever stored. */
   country: string | null;
+  joinedAt: string;
 };
+
+export type SaveResult = { total: number; position: number; created: boolean };
+
+/* ------------------------------------------------------------- connection */
+
+/**
+ * Neon's HTTP driver: one stateless request per query, which is what a
+ * serverless function wants — no pool to warm up and nothing to leak between
+ * invocations. Runtime queries go through the pooled URL.
+ */
+let client: ReturnType<typeof neon> | null = null;
+
+function db() {
+  const url = process.env.DATABASE_URL;
+  if (!url) throw new Error('DATABASE_URL is not set');
+  if (!client) client = neon(url);
+  return client;
+}
+
+export const isConfigured = () => Boolean(process.env.DATABASE_URL);
+
+/** True when the database is reachable but `npm run db:setup` never ran. */
+export function isMissingTable(error: unknown): boolean {
+  return /relation "waitlist" does not exist/i.test(
+    error instanceof Error ? error.message : String(error)
+  );
+}
 
 /* ----------------------------------------------------------- validation */
 
@@ -30,19 +56,6 @@ export function normalizeWallet(input: unknown): string | null {
   return wallet;
 }
 
-/**
- * Blob objects are served from public URLs, so the pathname must not be
- * guessable from the wallet address. An HMAC keyed on WAITLIST_SALT keeps the
- * name stable (one object per wallet, so re-joining is idempotent) without
- * making the store enumerable by anyone who knows an address.
- */
-export function blobKeyFor(wallet: string): string {
-  const salt = process.env.WAITLIST_SALT;
-  if (!salt) throw new Error('WAITLIST_SALT is not set');
-  const digest = createHmac('sha256', salt).update(wallet.toLowerCase()).digest('hex');
-  return `${BLOB_PREFIX}${digest}.json`;
-}
-
 export function isAuthorizedAdmin(token: string | null): boolean {
   const expected = process.env.WAITLIST_ADMIN_TOKEN;
   if (!expected || !token) return false;
@@ -53,76 +66,73 @@ export function isAuthorizedAdmin(token: string | null): boolean {
 
 /* ---------------------------------------------------------------- store */
 
-async function listAll(): Promise<ListBlobResult['blobs']> {
-  const blobs: ListBlobResult['blobs'] = [];
-  let cursor: string | undefined;
-
-  do {
-    const page: ListBlobResult = await list({ prefix: BLOB_PREFIX, limit: 1000, cursor });
-    blobs.push(...page.blobs);
-    cursor = page.hasMore ? page.cursor : undefined;
-  } while (cursor);
-
-  return blobs;
+export async function countEntries(): Promise<number> {
+  const rows = (await db()`select count(*)::int as total from waitlist`) as { total: number }[];
+  return rows[0]?.total ?? 0;
 }
 
-/** A per-instance cache, so the countdown page does not re-list on every hit. */
-let totalCache: { value: number; at: number } | null = null;
-const TOTAL_TTL_MS = 30_000;
+export async function saveEntry(entry: {
+  wallet: string;
+  source: string;
+  passNo: string | null;
+  country: string | null;
+}): Promise<SaveResult> {
+  const sql = db();
+  const walletKey = entry.wallet.toLowerCase();
 
-export async function countEntries(force = false): Promise<number> {
-  if (!force && totalCache && Date.now() - totalCache.at < TOTAL_TTL_MS) return totalCache.value;
-  const value = (await listAll()).length;
-  totalCache = { value, at: Date.now() };
-  return value;
+  // `xmax = 0` is Postgres' own tell for "this row came from the insert, not
+  // the update branch" — it distinguishes a new join from a re-join without a
+  // second lookup. joined_at is never touched on conflict: the queue belongs to
+  // whoever showed up first.
+  const upserted = (await sql`
+    insert into waitlist (wallet, wallet_key, source, pass_no, country)
+    values (${entry.wallet}, ${walletKey}, ${entry.source}, ${entry.passNo}, ${entry.country})
+    on conflict (wallet_key) do update
+      set wallet     = excluded.wallet,
+          source     = excluded.source,
+          pass_no    = coalesce(excluded.pass_no, waitlist.pass_no),
+          country    = coalesce(excluded.country, waitlist.country),
+          updated_at = now()
+    returning id, (xmax = 0) as created
+  `) as { id: string; created: boolean }[];
+
+  const row = upserted[0];
+
+  const counts = (await sql`
+    select
+      (select count(*)::int from waitlist)                            as total,
+      (select count(*)::int from waitlist where id <= ${row.id})      as position
+  `) as { total: number; position: number }[];
+
+  return {
+    total: counts[0]?.total ?? 0,
+    position: counts[0]?.position ?? 0,
+    created: row.created,
+  };
 }
 
-export async function saveEntry(entry: WaitlistEntry): Promise<{ total: number; created: boolean }> {
-  const pathname = blobKeyFor(entry.wallet);
-  const existing = await list({ prefix: pathname, limit: 1 });
-  const created = !existing.blobs.some((blob) => blob.pathname === pathname);
-
-  // Overwrite on re-join so the newest pass/source wins, but keep the first
-  // joinedAt — position in the queue belongs to whoever showed up first.
-  const record: WaitlistEntry = created
-    ? entry
-    : { ...entry, joinedAt: (await readEntry(existing.blobs[0].url))?.joinedAt ?? entry.joinedAt };
-
-  await put(pathname, JSON.stringify(record, null, 2), {
-    access: 'public',
-    addRandomSuffix: false,
-    allowOverwrite: true,
-    contentType: 'application/json',
-    // The store rejects anything under a minute; entries barely change after
-    // they are written, so the shortest allowed window is the right one.
-    cacheControlMaxAge: 60,
-  });
-
-  const total = await countEntries(true);
-  return { total, created };
-}
-
-async function readEntry(url: string): Promise<WaitlistEntry | null> {
-  try {
-    const res = await fetch(url, { cache: 'no-store' });
-    if (!res.ok) return null;
-    return (await res.json()) as WaitlistEntry;
-  } catch {
-    return null;
-  }
-}
-
-/** Reads every entry, a few at a time so a big list does not open 5,000 sockets. */
 export async function readAllEntries(): Promise<WaitlistEntry[]> {
-  const blobs = await listAll();
-  const entries: WaitlistEntry[] = [];
-  const BATCH = 25;
+  const rows = (await db()`
+    select
+      row_number() over (order by joined_at, id) as position,
+      wallet, source, pass_no, country, joined_at
+    from waitlist
+    order by joined_at, id
+  `) as {
+    position: string;
+    wallet: string;
+    source: string;
+    pass_no: string | null;
+    country: string | null;
+    joined_at: string;
+  }[];
 
-  for (let i = 0; i < blobs.length; i += BATCH) {
-    const chunk = await Promise.all(blobs.slice(i, i + BATCH).map((blob) => readEntry(blob.url)));
-    for (const entry of chunk) if (entry) entries.push(entry);
-  }
-
-  entries.sort((a, b) => a.joinedAt.localeCompare(b.joinedAt));
-  return entries;
+  return rows.map((row) => ({
+    position: Number(row.position),
+    wallet: row.wallet,
+    source: row.source,
+    passNo: row.pass_no,
+    country: row.country,
+    joinedAt: new Date(row.joined_at).toISOString(),
+  }));
 }

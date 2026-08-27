@@ -1,14 +1,20 @@
 import { NextResponse } from 'next/server';
-import { countEntries, normalizeWallet, saveEntry, type WaitlistEntry } from '@/lib/waitlist';
+import {
+  countEntries,
+  isConfigured,
+  isMissingTable,
+  normalizeWallet,
+  saveEntry,
+} from '@/lib/waitlist';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 /**
  * Best-effort throttle. Serverless instances do not share memory, so this only
- * blunts a hot loop from one client — it is not a security boundary. Blob
- * pathnames are keyed by wallet, so repeat submissions overwrite rather than
- * grow the store.
+ * blunts a hot loop from one client — it is not a security boundary. The real
+ * guard is the unique index on wallet_key: repeat submissions update one row
+ * rather than growing the table.
  */
 const hits = new Map<string, number[]>();
 const WINDOW_MS = 60_000;
@@ -23,19 +29,20 @@ function rateLimited(key: string): boolean {
   return recent.length > MAX_PER_WINDOW;
 }
 
-function missingBlobToken() {
-  return NextResponse.json(
-    {
-      ok: false,
-      error:
-        'Blob store is not connected. Add BLOB_READ_WRITE_TOKEN (Vercel → Storage → Blob → Connect).',
-    },
-    { status: 503 }
-  );
+function databaseError(error: unknown) {
+  if (isMissingTable(error)) {
+    console.error('[waitlist] the waitlist table is missing — run: npm run db:setup');
+    return NextResponse.json(
+      { ok: false, error: 'Waitlist storage is not initialised yet.' },
+      { status: 503 }
+    );
+  }
+  console.error('[waitlist] database error', error);
+  return NextResponse.json({ ok: false, error: 'Could not save your spot.' }, { status: 500 });
 }
 
 export async function GET() {
-  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+  if (!isConfigured()) {
     return NextResponse.json({ ok: true, total: 0, configured: false });
   }
   try {
@@ -44,13 +51,22 @@ export async function GET() {
       { headers: { 'Cache-Control': 'no-store' } }
     );
   } catch (error) {
+    if (isMissingTable(error)) {
+      console.error('[waitlist] the waitlist table is missing — run: npm run db:setup');
+      return NextResponse.json({ ok: true, total: 0, configured: false });
+    }
     console.error('[waitlist] count failed', error);
     return NextResponse.json({ ok: false, total: 0, configured: true }, { status: 500 });
   }
 }
 
 export async function POST(request: Request) {
-  if (!process.env.BLOB_READ_WRITE_TOKEN || !process.env.WAITLIST_SALT) return missingBlobToken();
+  if (!isConfigured()) {
+    return NextResponse.json(
+      { ok: false, error: 'DATABASE_URL is not set on this deployment.' },
+      { status: 503 }
+    );
+  }
 
   const forwarded = request.headers.get('x-forwarded-for') ?? '';
   if (rateLimited(forwarded.split(',')[0].trim() || 'unknown')) {
@@ -72,22 +88,19 @@ export async function POST(request: Request) {
     );
   }
 
-  const passNo = typeof body.passNo === 'string' ? body.passNo.slice(0, 16) : null;
-  const source = body.source === 'mobile' ? 'mobile' : 'desktop';
-
-  const entry: WaitlistEntry = {
-    wallet,
-    source,
-    passNo,
-    joinedAt: new Date().toISOString(),
-    country: request.headers.get('x-vercel-ip-country'),
-  };
-
   try {
-    const { total, created } = await saveEntry(entry);
-    return NextResponse.json({ ok: true, total, created }, { headers: { 'Cache-Control': 'no-store' } });
+    const { total, position, created } = await saveEntry({
+      wallet,
+      source: body.source === 'mobile' ? 'mobile' : 'desktop',
+      passNo: typeof body.passNo === 'string' ? body.passNo.slice(0, 16) : null,
+      country: request.headers.get('x-vercel-ip-country'),
+    });
+
+    return NextResponse.json(
+      { ok: true, total, position, created },
+      { headers: { 'Cache-Control': 'no-store' } }
+    );
   } catch (error) {
-    console.error('[waitlist] save failed', error);
-    return NextResponse.json({ ok: false, error: 'Could not save your spot.' }, { status: 500 });
+    return databaseError(error);
   }
 }

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { isAuthorizedAdmin, readAllEntries } from '@/lib/waitlist';
+import { isAuthorizedAdmin, isConfigured, isMissingTable, readAllEntries } from '@/lib/waitlist';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -23,18 +23,30 @@ export async function GET(request: Request) {
   if (!isAuthorizedAdmin(token)) {
     return NextResponse.json({ ok: false, error: 'Unauthorized.' }, { status: 401 });
   }
-  if (!process.env.BLOB_READ_WRITE_TOKEN) {
-    return NextResponse.json({ ok: false, error: 'Blob store not connected.' }, { status: 503 });
+  if (!isConfigured()) {
+    return NextResponse.json({ ok: false, error: 'DATABASE_URL is not set.' }, { status: 503 });
   }
 
-  const entries = await readAllEntries();
+  let entries;
+  try {
+    entries = await readAllEntries();
+  } catch (error) {
+    if (isMissingTable(error)) {
+      return NextResponse.json(
+        { ok: false, error: 'Waitlist table is missing — run: npm run db:setup' },
+        { status: 503 }
+      );
+    }
+    console.error('[waitlist] export failed', error);
+    return NextResponse.json({ ok: false, error: 'Export failed.' }, { status: 500 });
+  }
 
   if (url.searchParams.get('format') === 'csv') {
     const rows = [
       'position,wallet,source,pass_no,joined_at,country',
-      ...entries.map((entry, index) =>
+      ...entries.map((entry) =>
         [
-          index + 1,
+          entry.position,
           csvCell(entry.wallet),
           csvCell(entry.source),
           csvCell(entry.passNo),

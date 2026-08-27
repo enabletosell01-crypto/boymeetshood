@@ -7,10 +7,11 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "designs": "node scripts/build-designs.mjs"
+    "designs": "node scripts/build-designs.mjs",
+    "db:setup": "node --env-file-if-exists=.env.local scripts/db-setup.mjs"
   },
   "dependencies": {
-    "@vercel/blob": "^2.8.0",
+    "@neondatabase/serverless": "^1.1.0",
     "htmlparser2": "^12.0.0",
     "next": "^16.3.3",
     "react": "^19.2.0",
