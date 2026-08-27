@@ -19,3 +19,7 @@ yarn-error.log*
 
 # Generated secrets for the Vercel dashboard — local only
 VERCEL-ENV.txt
+
+# Exported waitlist data — contains wallet addresses
+hoodmeetsboy-waitlist.csv
+hoodmeetsboy-waitlist.json

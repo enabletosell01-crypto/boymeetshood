@@ -60,7 +60,30 @@ client-side and the join is simply not recorded.
 | `GET /api/waitlist/export?token=…&format=csv` | Same, as CSV |
 
 The token is `WAITLIST_ADMIN_TOKEN`. It also works as
-`Authorization: Bearer <token>`, which keeps it out of browser history.
+`Authorization: Bearer <token>`, which keeps it out of browser history. If the
+export answers `Unauthorized`, that variable is missing or different on the
+deployment — the site keeps recording signups either way.
+
+## Pulling the waitlist
+
+Straight from the database, no deployment or token involved:
+
+```bash
+npm run waitlist                    # table in the terminal
+npm run waitlist -- --csv           # hoodmeetsboy-waitlist.csv
+npm run waitlist -- --json          # hoodmeetsboy-waitlist.json
+npm run waitlist -- --since 2026-09-01
+```
+
+It reads `DATABASE_URL` from `.env.local`, so it sees exactly what production
+writes. Exported files are gitignored — they hold wallet addresses.
+
+Over HTTP instead, once `WAITLIST_ADMIN_TOKEN` is set on the deployment:
+
+```bash
+curl -H "Authorization: Bearer $WAITLIST_ADMIN_TOKEN" \
+  https://boymeetshood.xyz/api/waitlist/export
+```
 
 One row per wallet in `waitlist` (`db/schema.sql`). Uniqueness is on
 `wallet_key`, the lowercased address, so `0xAB…` and `0xab…` are one person.

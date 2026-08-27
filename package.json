@@ -8,7 +8,8 @@
     "build": "next build",
     "start": "next start",
     "designs": "node scripts/build-designs.mjs",
-    "db:setup": "node --env-file-if-exists=.env.local scripts/db-setup.mjs"
+    "db:setup": "node --env-file-if-exists=.env.local scripts/db-setup.mjs",
+    "waitlist": "node --env-file-if-exists=.env.local scripts/waitlist-export.mjs"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",
