@@ -70,6 +70,38 @@ function rebrand(text) {
   }, text);
 }
 
+/**
+ * The X account, which is deliberately NOT the brand spelling — the handle
+ * uses zeros. Keeping it separate from `rebrand` matters: renaming the brand
+ * must never silently repoint the follow button at an account that may not
+ * exist. Change this one constant if the account ever moves.
+ */
+const X_HANDLE = 'boymeetsh00d';
+
+let handleCount = 0;
+
+/**
+ * Points every reference to the account at the real handle. The `#BoyMeetsHood`
+ * hashtag is left alone on purpose: a hashtag is brand text, not an account,
+ * and it reads as the project name.
+ */
+function xAccount(text) {
+  const rules = [
+    [/screen_name=BoyMeetsHood/g, `screen_name=${X_HANDLE}`],
+    [/x\.com\/BoyMeetsHood/g, `x.com/${X_HANDLE}`],
+    [/@BOYMEETSHOOD/g, `@${X_HANDLE.toUpperCase()}`],
+    [/@BoyMeetsHood/g, `@${X_HANDLE}`],
+  ];
+
+  return rules.reduce((acc, [pattern, replacement]) => {
+    handleCount += (acc.match(pattern) ?? []).length;
+    return acc.replace(pattern, replacement);
+  }, text);
+}
+
+/** Brand rename first, then the handle — the handle rules match renamed text. */
+const finish = (text) => xAccount(rebrand(absolutizeAssets(text)));
+
 function extract(name) {
   const raw = readFileSync(join(SRC, `${name}.dc.html`), 'utf8');
 
@@ -114,9 +146,9 @@ function buildDesktop() {
   const { css, body } = splitHelmet(template, 'desktop');
   return {
     name: 'desktop',
-    css: rebrand(absolutizeAssets(css)),
-    template: rebrand(absolutizeAssets(body)),
-    logic: rebrand(absolutizeAssets(logic)),
+    css: finish(css),
+    template: finish(body),
+    logic: finish(logic),
     defaults,
   };
 }
@@ -222,9 +254,9 @@ function buildMobile() {
 
   return {
     name: 'mobile',
-    css: rebrand(absolutizeAssets(css)),
-    template: rebrand(absolutizeAssets(shell)),
-    logic: rebrand(absolutizeAssets(logic)),
+    css: finish(css),
+    template: finish(shell),
+    logic: finish(logic),
     defaults,
   };
 }
@@ -258,4 +290,7 @@ function emit({ name, css, template, logic, defaults }) {
 
 console.log('building designs…');
 for (const design of [buildDesktop(), buildMobile()]) emit(design);
-console.log(`done. renamed ${rebrandCount} HoodMeetsBoy → BoyMeetsHood.`);
+console.log(
+  `done. renamed ${rebrandCount} HoodMeetsBoy → BoyMeetsHood, ` +
+    `pointed ${handleCount} X references at @${X_HANDLE}.`
+);

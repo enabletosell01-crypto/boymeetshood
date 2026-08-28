@@ -176,6 +176,16 @@ bezel, handing notch padding to `env(safe-area-inset-*)` — is a named patch th
 throws if its target is gone, so a changed design fails the build loudly instead
 of shipping broken.
 
+Two of those patches rewrite copy, and they are deliberately separate:
+
+- `rebrand()` swaps the compound name to BoyMeetsHood. Only the joined token —
+  "Hood Credit", "Hood Pass" and "4,444 Boys" use the words on their own.
+- `xAccount()` points every reference at the real X handle, `X_HANDLE`. It is
+  its own constant because the handle is **not** the brand spelling
+  (`boymeetsh00d`, with zeros); folding it into the rename would silently
+  repoint the follow button whenever the brand changed. The `#BoyMeetsHood`
+  hashtag stays — a hashtag is brand text, not an account.
+
 ## Notes
 
 - The designs are rendered on the client. Metadata, OG tags, `robots.txt` and

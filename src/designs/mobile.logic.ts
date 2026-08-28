@@ -253,7 +253,7 @@ class Component extends DCLogic {
   submit = () => {
     const st = this.walletState();
     if (st === 'empty' || st === 'short') { this.flash('PASTE A WALLET ADDRESS OR ENS NAME'); return; }
-    if (!this.state.followed) { this.flash('FOLLOW @BOYMEETSHOOD FIRST'); return; }
+    if (!this.state.followed) { this.flash('FOLLOW @BOYMEETSH00D FIRST'); return; }
     const w = this.state.wallet.trim();
     const h = this.hash(w.toLowerCase());
     const hex = h.toString(16).toUpperCase().padStart(8, '0');
@@ -302,7 +302,7 @@ class Component extends DCLogic {
     const wxKey = (p && p.wx) || 'rain';
     const shareText = p
       ? 'I just claimed my spot in the Hood.\n\nHOOD PASS ' + p.num + ' · MOOD · ' + p.mood + '\nWallet ' + p.short
-        + '\n\n4,444 Boys. One Hood. Real financial utility.\nOwn. Borrow. Lend. Build. Repeat.\n\n@BoyMeetsHood #BoyMeetsHood #NFTFi'
+        + '\n\n4,444 Boys. One Hood. Real financial utility.\nOwn. Borrow. Lend. Build. Repeat.\n\n@boymeetsh00d #BoyMeetsHood #NFTFi'
       : '';
 
     const tabIcon = (on, i) => {
@@ -406,11 +406,11 @@ class Component extends DCLogic {
       dot3: stepDot(s.joined), dot3Mark: s.joined ? '✓' : '3',
 
       followTap: () => {
-        try { window.open('https://x.com/BoyMeetsHood', '_blank', 'noopener'); } catch (e) {}
+        try { window.open('https://x.com/boymeetsh00d', '_blank', 'noopener'); } catch (e) {}
         this.setState({ followed: true });
         this.flash('OPENED X · FOLLOW CHECK PENDING AT DROP');
       },
-      followLabel: s.followed ? 'FOLLOWING @BOYMEETSHOOD' : 'FOLLOW @BOYMEETSHOOD',
+      followLabel: s.followed ? 'FOLLOWING @BOYMEETSH00D' : 'FOLLOW @BOYMEETSH00D',
       followStyle: 'margin-top:10px;width:100%;min-height:50px;border-radius:16px;cursor:pointer;font-family:\'Baloo 2\',cursive;font-weight:800;font-size:15px;letter-spacing:.2px;'
         + (s.followed
           ? 'border:1px solid rgba(198,245,17,.45);background:rgba(198,245,17,.12);color:var(--lime,#c6f511)'

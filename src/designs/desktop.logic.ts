@@ -96,7 +96,7 @@ class Component extends DCLogic {
 
   onSubmit = () => {
     const w = (this.state.wallet || '').trim();
-    if (!this.state.followed) return this.setState({ err: 'Follow @BoyMeetsHood on X first.' });
+    if (!this.state.followed) return this.setState({ err: 'Follow @boymeetsh00d on X first.' });
     if (!w) return this.setState({ err: 'Paste a wallet address first.' });
     const ok = /^0x[a-fA-F0-9]{40}$/.test(w) || (w.length >= 8 && /^[a-zA-Z0-9._-]+$/.test(w));
     if (!ok) return this.setState({ err: 'That address does not look right.' });
@@ -124,7 +124,7 @@ class Component extends DCLogic {
   tweet() {
     const p = this.state.pass;
     if (!p) return '';
-    return 'I just claimed my spot in the Hood.\n\nHOOD PASS ' + p.no + ' · ' + p.tier.line + '\nWallet ' + p.short + '\n\n4,444 Boys. One Hood. Real financial utility.\nOwn. Borrow. Lend. Build. Repeat.\n\n@BoyMeetsHood #BoyMeetsHood #NFTFi';
+    return 'I just claimed my spot in the Hood.\n\nHOOD PASS ' + p.no + ' · ' + p.tier.line + '\nWallet ' + p.short + '\n\n4,444 Boys. One Hood. Real financial utility.\nOwn. Borrow. Lend. Build. Repeat.\n\n@boymeetsh00d #BoyMeetsHood #NFTFi';
   }
 
   onPost = () => {
@@ -684,8 +684,8 @@ class Component extends DCLogic {
         + 'box-shadow:0 0 0 1px rgba(255,255,255,.2),0 30px 90px -20px rgba(124,92,255,.85),0 0 120px -30px rgba(34,225,255,.6);'
         + 'animation:hmbEdge 9s linear infinite,hmbPassIn .85s cubic-bezier(.2,1,.3,1) both',
       queueLabel: st.queue > 0 ? String(st.queue).padStart(3, '0') + ' WALLETS IN QUEUE' : 'QUEUE OPEN',
-      followUrl: 'https://x.com/intent/follow?screen_name=BoyMeetsHood',
-      followLabel: st.followed ? 'FOLLOWING ✓' : 'FOLLOW @BOYMEETSHOOD',
+      followUrl: 'https://x.com/intent/follow?screen_name=boymeetsh00d',
+      followLabel: st.followed ? 'FOLLOWING ✓' : 'FOLLOW @BOYMEETSH00D',
       onFollow: this.onFollow,
       onWallet: this.onWallet,
       onKey: this.onKey,
