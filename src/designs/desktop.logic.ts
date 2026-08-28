@@ -5,7 +5,7 @@
 import { DCLogic } from '@/dc/DCLogic';
 
 class Component extends DCLogic {
-  state = { splashOn: false, splashOut: false, followed: false, wallet: '', err: '', pass: null, queue: 0, copied: false, dl: false, modalOn: false, flipped: false };
+  state = { splashOn: false, splashOut: false, portalOn: false, followed: false, wallet: '', err: '', pass: null, queue: 0, copied: false, dl: false, modalOn: false, flipped: false };
   ART = ['wall', 'umbrella', 'dunk', 'pirate', 'soda', 'jungle', 'scooter', 'snow', 'truck', 'winter', 'hood', 'cosmic', 'kid', 'beam', 'doodle', 'flame', 'gold', 'bear', 'astro', 'vamp', 'king', 'ice', 'devil', 'alien', 'skull'];
   MOODS = [
     { label: 'MOODY SAD', line: 'MOOD · MOODY SAD', scene: 'rain',
@@ -96,7 +96,7 @@ class Component extends DCLogic {
 
   onSubmit = () => {
     const w = (this.state.wallet || '').trim();
-    if (!this.state.followed) return this.setState({ err: 'Follow @HoodMeetsBoy on X first.' });
+    if (!this.state.followed) return this.setState({ err: 'Follow @BoyMeetsHood on X first.' });
     if (!w) return this.setState({ err: 'Paste a wallet address first.' });
     const ok = /^0x[a-fA-F0-9]{40}$/.test(w) || (w.length >= 8 && /^[a-zA-Z0-9._-]+$/.test(w));
     if (!ok) return this.setState({ err: 'That address does not look right.' });
@@ -124,11 +124,11 @@ class Component extends DCLogic {
   tweet() {
     const p = this.state.pass;
     if (!p) return '';
-    return 'I just claimed my spot in the Hood.\n\nHOOD PASS ' + p.no + ' · ' + p.tier.line + '\nWallet ' + p.short + '\n\n4,444 Boys. One Hood. Real financial utility.\nOwn. Borrow. Lend. Build. Repeat.\n\n@HoodMeetsBoy #HoodMeetsBoy #NFTFi';
+    return 'I just claimed my spot in the Hood.\n\nHOOD PASS ' + p.no + ' · ' + p.tier.line + '\nWallet ' + p.short + '\n\n4,444 Boys. One Hood. Real financial utility.\nOwn. Borrow. Lend. Build. Repeat.\n\n@BoyMeetsHood #BoyMeetsHood #NFTFi';
   }
 
   onPost = () => {
-    const url = 'https://x.com/intent/post?text=' + encodeURIComponent(this.tweet()) + '&url=' + encodeURIComponent('https://hoodmeetsboy.xyz');
+    const url = 'https://x.com/intent/post?text=' + encodeURIComponent(this.tweet()) + '&url=' + encodeURIComponent('https://boymeetshood.xyz');
     window.open(url, '_blank', 'noopener');
   };
 
@@ -180,7 +180,7 @@ class Component extends DCLogic {
 
     try { await document.fonts.ready; } catch (e) {}
     const load = src => new Promise(res => { const i = new Image(); i.onload = () => res(i); i.onerror = () => res(null); i.src = src; });
-    const art = await load('/assets/nft/' + p.art + '.png');
+    const art = await load(this.art(p.art));
     if (art) {
       const x = 80, y = 176, s = 320;
       c.save();
@@ -201,7 +201,7 @@ class Component extends DCLogic {
     const L = 452;
     c.fillStyle = t.ink;
     c.font = '800 40px "Baloo 2", sans-serif';
-    c.fillText('HoodMeetsBoy', L, 130);
+    c.fillText('BoyMeetsHood', L, 130);
     c.fillStyle = t.faint;
     c.font = '700 18px "Space Mono", monospace';
     c.fillText('HOOD PASS', L, 232);
@@ -246,9 +246,26 @@ class Component extends DCLogic {
     this.applyTheme();
     this.setState({ queue: this.readQueue().length });
     if (this.props.splashEnabled !== false) {
+      const rip = this.props.glitchIntro !== false;
       this.setState({ splashOn: true });
-      this.t1 = setTimeout(() => this.setState({ splashOut: true }), 1500);
-      this.t2 = setTimeout(() => this.setState({ splashOn: false }), 2400);
+      this.t1 = setTimeout(() => {
+        this.setState({ splashOut: true });
+        if (!rip) return;
+        const core = document.querySelector('[data-splash-core]');
+        if (core) core.style.animation = 'hmbChannelRip .62s steps(7,end) both';
+      }, 1500);
+      this.t2 = setTimeout(() => {
+        this.setState({ splashOn: false, portalOn: rip });
+        if (!rip) return;
+        ['header', '[data-stage]'].forEach((sel, i) => {
+          const el = document.querySelector(sel);
+          if (!el) return;
+          el.style.transformOrigin = 'center top';
+          el.style.animation = 'hmbUnfold ' + (i ? '.86s' : '.62s') + ' cubic-bezier(.2,.85,.25,1) ' + (i ? '.06s' : '0s') + ' both';
+          setTimeout(() => { el.style.animation = ''; el.style.transformOrigin = ''; }, 1200);
+        });
+      }, rip ? 2180 : 2400);
+      this.t3 = setTimeout(() => this.setState({ portalOn: false }), 3200);
     }
     this.observeReveals();
     this.initTilt();
@@ -262,7 +279,7 @@ class Component extends DCLogic {
     const slots = Array.from(document.querySelectorAll('[data-swap]'));
     if (!slots.length) return;
     const pool = ['wall','umbrella','dunk','pirate','soda','jungle','scooter','snow','truck','winter','hood','cosmic','kid','beam','doodle','flame','gold','bear','astro','vamp','king','ice','devil','alien','skull']
-      .map(n => '/assets/nft/' + n + '-sm.png');
+      .map(n => this.art(n));
     pool.forEach(src => { const p = new Image(); p.src = src; });
     this.swapTimers = [];
 
@@ -546,7 +563,7 @@ class Component extends DCLogic {
   componentDidUpdate() { this.applyTheme(); }
 
   componentWillUnmount() {
-    clearTimeout(this.t1); clearTimeout(this.t2); clearTimeout(this.revealTimer);
+    clearTimeout(this.t1); clearTimeout(this.t2); clearTimeout(this.t3); clearTimeout(this.revealTimer);
     if (this.swapTimers) this.swapTimers.forEach(clearTimeout);
     if (this.io) this.io.disconnect();
     if (this.cio) this.cio.disconnect();
@@ -599,7 +616,7 @@ class Component extends DCLogic {
     const out = this.state.splashOut;
     const names = ['wall', 'umbrella', 'dunk', 'pirate', 'soda', 'jungle', 'scooter', 'snow', 'truck', 'winter', 'hood', 'cosmic', 'kid', 'beam', 'doodle', 'flame', 'gold', 'bear', 'astro', 'vamp', 'king', 'ice', 'devil', 'alien', 'skull'];
     const nfts = names.map((n, i) => ({
-      src: '/assets/nft/' + n + '-sm.png',
+      src: this.art(n),
       style: 'width:100%;height:100%;background:url(' + this.art(n) + ') center/cover no-repeat',
       id: '#' + String(i + 1).padStart(4, '0')
     }));
@@ -614,7 +631,7 @@ class Component extends DCLogic {
       const bwid = (seed >> (i % 9)) % 3 === 0 ? 5 : 2;
       bars.push({ style: 'display:block;width:' + bwid + 'px;height:' + bh + 'px;background:' + (ghost ? 'rgba(255,255,255,.3)' : t.bar) });
     }
-    const artUrl = '/assets/nft/' + (p ? p.art : 'hood') + '-sm.png';
+    const artUrl = this.art(p ? p.art : 'hood');
     const drops = [];
     for (let i = 0; i < 9; i++) {
       const pos = 8 + i * 10;
@@ -628,6 +645,9 @@ class Component extends DCLogic {
     const okBtn = 'border:none;cursor:pointer;background:var(--lime,#c6f511);color:#0d0f12;font-family:\'Baloo 2\',cursive;font-weight:800;font-size:16px;padding:15px 26px;border-radius:16px;box-shadow:0 12px 30px rgba(198,245,17,.28);transition:transform .18s cubic-bezier(.2,1.4,.4,1)';
     return {
       splashOn: this.state.splashOn,
+      splashOut: out && this.props.glitchIntro !== false,
+      portalOn: this.state.portalOn,
+      splashCaption: out ? 'BREACHING' : 'ENTERING THE HOOD',
       modalOn: st.modalOn,
       stageForm: !p,
       stagePass: !!p,
@@ -664,8 +684,8 @@ class Component extends DCLogic {
         + 'box-shadow:0 0 0 1px rgba(255,255,255,.2),0 30px 90px -20px rgba(124,92,255,.85),0 0 120px -30px rgba(34,225,255,.6);'
         + 'animation:hmbEdge 9s linear infinite,hmbPassIn .85s cubic-bezier(.2,1,.3,1) both',
       queueLabel: st.queue > 0 ? String(st.queue).padStart(3, '0') + ' WALLETS IN QUEUE' : 'QUEUE OPEN',
-      followUrl: 'https://x.com/intent/follow?screen_name=HoodMeetsBoy',
-      followLabel: st.followed ? 'FOLLOWING ✓' : 'FOLLOW @HOODMEETSBOY',
+      followUrl: 'https://x.com/intent/follow?screen_name=BoyMeetsHood',
+      followLabel: st.followed ? 'FOLLOWING ✓' : 'FOLLOW @BOYMEETSHOOD',
       onFollow: this.onFollow,
       onWallet: this.onWallet,
       onKey: this.onKey,
@@ -711,9 +731,13 @@ class Component extends DCLogic {
       cardCaption: p ? 'RANDOM ART · GLITCH PASS · SHAREABLE' : 'YOUR PASS APPEARS HERE',
       nfts: nfts,
       nftsAlt: nfts.slice().reverse(),
-      splashStyle: 'position:fixed;inset:0;z-index:999;display:flex;align-items:center;justify-content:center;'
-        + 'background:var(--lime,#c6f511);transition:opacity .8s ease,transform .8s cubic-bezier(.7,0,.2,1);'
-        + (out ? 'opacity:0;transform:translateY(-100%);pointer-events:none' : 'opacity:1;transform:translateY(0)')
+      splashStyle: 'position:fixed;inset:0;z-index:999;display:flex;align-items:center;justify-content:center;overflow:hidden;'
+        + 'background:var(--lime,#c6f511);transform-origin:center;'
+        + (out
+          ? (this.props.glitchIntro !== false
+            ? 'pointer-events:none;animation:hmbCollapse .68s cubic-bezier(.7,0,.25,1) both'
+            : 'pointer-events:none;opacity:0;transition:opacity .8s ease')
+          : 'opacity:1')
     };
   }
 }

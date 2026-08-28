@@ -1,4 +1,4 @@
-# HoodMeetsBoy
+# BoyMeetsHood
 
 4,444 Boys. One Hood. Real Financial Utility.
 
@@ -70,8 +70,8 @@ Straight from the database, no deployment or token involved:
 
 ```bash
 npm run waitlist                    # table in the terminal
-npm run waitlist -- --csv           # hoodmeetsboy-waitlist.csv
-npm run waitlist -- --json          # hoodmeetsboy-waitlist.json
+npm run waitlist -- --csv           # boymeetshood-waitlist.csv
+npm run waitlist -- --json          # boymeetshood-waitlist.json
 npm run waitlist -- --since 2026-09-01
 ```
 
@@ -91,6 +91,21 @@ Re-joining upserts — `joined_at` is never touched, so queue order is whoever
 showed up first, and a `pass_no` already on file survives a re-submit that
 sends none. No IP address is stored; only the coarse country header Vercel
 provides.
+
+## The intro
+
+The lime splash holds for 1.5s, flips its caption to BREACHING, then tears
+itself apart — channel split, slice displacement, static, tear bands — collapses
+to a scan line and blows out into a portal flash while the page unfolds from a
+hairline behind it. All of it is the design's own markup and keyframes.
+
+```bash
+NEXT_PUBLIC_INTRO=off    # straight load, no splash, no glitch
+```
+
+That maps onto the props the handoffs already expose (`splashEnabled` and
+`glitchIntro` on desktop, `splash` and `glitch` on mobile) rather than
+short-circuiting anything, so the design stays the source of truth.
 
 ## The mint countdown
 
@@ -128,6 +143,24 @@ src/dc/                   renders a design template with React
 builds React elements: `{{ path }}` bindings, `sc-if`, `sc-for`, `style-hover`
 and `style-focus`. Rendering the design's own markup rather than transcribing it
 into JSX is what keeps the site pixel-identical to what was signed off.
+
+It also decodes `sc-camel-*` attributes. HTML lowercases attribute names, so a
+bundled export ships `onClick` as `sc-camel-on-click` and `viewBox` as
+`sc-camel-view-box`. Dropping those would leave a page that looks perfect and
+does nothing, which is exactly what happened the first time a bundle was
+imported.
+
+### Importing an offline bundle
+
+A "Download offline" export inlines every asset as base64 behind a UUID — 8.6MB
+for the desktop design. `scripts/import-offline.mjs` turns one back into a
+normal handoff, hashing each embedded resource to match it against the files
+already in `public/assets` and reporting anything it cannot place:
+
+```bash
+node scripts/import-offline.mjs ~/Downloads/bundle.html desktop
+npm run designs
+```
 
 ### Updating a design
 

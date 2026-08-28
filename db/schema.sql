@@ -1,4 +1,4 @@
--- HoodMeetsBoy waitlist.
+-- BoyMeetsHood waitlist.
 -- Idempotent: safe to run against a fresh or existing database.
 
 create table if not exists waitlist (

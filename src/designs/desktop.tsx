@@ -6,6 +6,14 @@ import { fetchWaitlistTotal, reportWaitlistJoin } from '@/lib/waitlist-client';
 import RawLogic from './desktop.logic';
 import { css, defaultProps, template } from './desktop.design';
 
+/**
+ * `NEXT_PUBLIC_INTRO=off` skips the splash and the breach-in glitch for a
+ * straight load — useful when the animation is in the way (recording a demo,
+ * or a visitor who has seen it a hundred times). Baked in at build time, so
+ * flipping it needs a redeploy.
+ */
+const introEnabled = process.env.NEXT_PUBLIC_INTRO !== 'off';
+
 /** The generated logic module is untyped design JS — keep the cast in one place. */
 const Base = RawLogic as unknown as new (props: any) => any;
 
@@ -43,7 +51,12 @@ export default function DesktopDesign() {
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: css }} />
-      <Site {...defaultProps} __dcTemplate={template} />
+      <Site
+        {...defaultProps}
+        splashEnabled={introEnabled && defaultProps.splashEnabled}
+        glitchIntro={introEnabled && defaultProps.glitchIntro}
+        __dcTemplate={template}
+      />
     </>
   );
 }

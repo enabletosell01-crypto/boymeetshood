@@ -58,7 +58,7 @@ export async function GET(request: Request) {
     return new NextResponse(rows.join('\n'), {
       headers: {
         'Content-Type': 'text/csv; charset=utf-8',
-        'Content-Disposition': 'attachment; filename="hoodmeetsboy-waitlist.csv"',
+        'Content-Disposition': 'attachment; filename="boymeetshood-waitlist.csv"',
         'Cache-Control': 'no-store',
       },
     });

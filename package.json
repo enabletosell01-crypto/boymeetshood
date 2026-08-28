@@ -2,7 +2,7 @@
   "name": "boymeetshood",
   "version": "1.0.0",
   "private": true,
-  "description": "HoodMeetsBoy — 4,444 Boys. One Hood. Real Financial Utility.",
+  "description": "BoyMeetsHood — 4,444 Boys. One Hood. Real Financial Utility.",
   "scripts": {
     "dev": "next dev",
     "build": "next build",

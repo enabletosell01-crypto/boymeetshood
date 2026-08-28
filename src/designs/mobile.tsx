@@ -6,6 +6,14 @@ import { fetchWaitlistTotal, reportWaitlistJoin } from '@/lib/waitlist-client';
 import RawLogic from './mobile.logic';
 import { css, defaultProps, template } from './mobile.design';
 
+/**
+ * `NEXT_PUBLIC_INTRO=off` skips the splash and the breach-in glitch for a
+ * straight load — useful when the animation is in the way (recording a demo,
+ * or a visitor who has seen it a hundred times). Baked in at build time, so
+ * flipping it needs a redeploy.
+ */
+const introEnabled = process.env.NEXT_PUBLIC_INTRO !== 'off';
+
 const Base = RawLogic as unknown as new (props: any) => any;
 
 /**
@@ -44,9 +52,27 @@ class MobileApp extends Base {
     const at = mintTarget();
     if (at !== null) this.target = at;
 
+    // The intro sets `animation: hmbWorldIn …` inline on the app bar and the
+    // scroll area and never takes it off. Its first keyframe squashes them to
+    // scaleY(.02), so anything that stops the animation from finishing — a
+    // background tab, where Chrome freezes the animation timeline and throttles
+    // timers — leaves the page collapsed to a hairline until it is focused. The
+    // desktop handoff clears its own intro animation after it plays; this does
+    // the same for mobile.
+    this.introCleanup = window.setTimeout(() => {
+      for (const el of document.querySelectorAll<HTMLElement>('[data-appbar],[data-scroll]')) {
+        if (el.style.animation.includes('hmbWorldIn')) el.style.animation = '';
+      }
+    }, 3400);
+
     void fetchWaitlistTotal().then((total) => {
       if (total !== null && total > 0) this.setState({ queue: total });
     });
+  }
+
+  componentWillUnmount() {
+    super.componentWillUnmount?.();
+    window.clearTimeout(this.introCleanup);
   }
 
   renderVals() {
@@ -81,7 +107,12 @@ export default function MobileDesign() {
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: css }} />
-      <App {...defaultProps} __dcTemplate={template} />
+      <App
+        {...defaultProps}
+        splash={introEnabled && defaultProps.splash}
+        glitch={introEnabled && defaultProps.glitch}
+        __dcTemplate={template}
+      />
     </>
   );
 }

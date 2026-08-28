@@ -1,6 +1,6 @@
 import type { MetadataRoute } from 'next';
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const base = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://hoodmeetsboy.xyz';
+  const base = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://boymeetshood.xyz';
   return [{ url: base, lastModified: new Date(), changeFrequency: 'daily', priority: 1 }];
 }

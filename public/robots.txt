@@ -2,4 +2,4 @@ User-agent: *
 Allow: /
 Disallow: /api/
 
-Sitemap: https://hoodmeetsboy.xyz/sitemap.xml
+Sitemap: https://boymeetshood.xyz/sitemap.xml

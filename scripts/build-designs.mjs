@@ -45,6 +45,31 @@ function absolutizeAssets(text) {
   return text.replace(/(["'(])assets\//g, '$1/assets/');
 }
 
+let rebrandCount = 0;
+
+/**
+ * The handoffs still say HoodMeetsBoy; the project shipped as BoyMeetsHood.
+ *
+ * Only the compound name is swapped — "Hood Credit", "Hood Pass", "The Hood
+ * Toolkit" and "4,444 Boys" all use the words on their own and must survive
+ * untouched, which is why this matches the joined token rather than the parts.
+ * The first rule catches the header lockup, where the two halves are split by
+ * the markup that colours "Meets".
+ */
+function rebrand(text) {
+  const rules = [
+    [/Hood(<span[^>]*>Meets<\/span>)Boy/g, 'Boy$1Hood'],
+    [/HoodMeetsBoy/g, 'BoyMeetsHood'],
+    [/HOODMEETSBOY/g, 'BOYMEETSHOOD'],
+    [/hoodmeetsboy/g, 'boymeetshood'],
+  ];
+
+  return rules.reduce((acc, [pattern, replacement]) => {
+    rebrandCount += (acc.match(pattern) ?? []).length;
+    return acc.replace(pattern, replacement);
+  }, text);
+}
+
 function extract(name) {
   const raw = readFileSync(join(SRC, `${name}.dc.html`), 'utf8');
 
@@ -89,9 +114,9 @@ function buildDesktop() {
   const { css, body } = splitHelmet(template, 'desktop');
   return {
     name: 'desktop',
-    css: absolutizeAssets(css),
-    template: absolutizeAssets(body),
-    logic: absolutizeAssets(logic),
+    css: rebrand(absolutizeAssets(css)),
+    template: rebrand(absolutizeAssets(body)),
+    logic: rebrand(absolutizeAssets(logic)),
     defaults,
   };
 }
@@ -197,9 +222,9 @@ function buildMobile() {
 
   return {
     name: 'mobile',
-    css: absolutizeAssets(css),
-    template: absolutizeAssets(shell),
-    logic: absolutizeAssets(logic),
+    css: rebrand(absolutizeAssets(css)),
+    template: rebrand(absolutizeAssets(shell)),
+    logic: rebrand(absolutizeAssets(logic)),
     defaults,
   };
 }
@@ -233,4 +258,4 @@ function emit({ name, css, template, logic, defaults }) {
 
 console.log('building designs…');
 for (const design of [buildDesktop(), buildMobile()]) emit(design);
-console.log('done.');
+console.log(`done. renamed ${rebrandCount} HoodMeetsBoy → BoyMeetsHood.`);

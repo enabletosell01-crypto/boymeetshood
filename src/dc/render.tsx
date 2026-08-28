@@ -90,7 +90,16 @@ const VOID_TAGS = new Set([
 ]);
 
 /** Attributes that only mean something to the Claude Design editor. */
-const EDITOR_ONLY = /^(hint-|data-dc-|sc-camel-)/;
+const EDITOR_ONLY = /^(hint-|data-dc-)/;
+
+/**
+ * HTML lowercases attribute names, so a handoff exported as a bundle encodes
+ * every camelCase prop: `onClick` ships as `sc-camel-on-click`, `viewBox` as
+ * `sc-camel-view-box`. Decoding these is not optional — dropping them would
+ * strip every click handler in the design and render a page that looks right
+ * and does nothing.
+ */
+const SC_CAMEL = /^sc-camel-/;
 
 const RENAMED: Record<string, string> = {
   class: 'className',
@@ -113,12 +122,19 @@ const RENAMED: Record<string, string> = {
   inputmode: 'inputMode',
 };
 
+const kebabToCamel = (name: string) =>
+  name.replace(/-([a-z])/g, (_, c: string) => c.toUpperCase());
+
 function attrToProp(name: string): string {
+  // `sc-camel-on-click` → `onClick`. Must come first: the encoded name would
+  // otherwise fall through to the data-/aria- and RENAMED checks below.
+  if (SC_CAMEL.test(name)) return kebabToCamel(name.replace(SC_CAMEL, ''));
+
   const renamed = RENAMED[name.toLowerCase()];
   if (renamed) return renamed;
   if (name.startsWith('data-') || name.startsWith('aria-')) return name;
   // SVG presentation attributes: `stroke-width` → `strokeWidth`.
-  if (name.includes('-')) return name.replace(/-([a-z])/g, (_, c: string) => c.toUpperCase());
+  if (name.includes('-')) return kebabToCamel(name);
   return name;
 }
 

@@ -5,9 +5,9 @@
  * fallback when the hosted export is misconfigured.
  *
  *   npm run waitlist                      print a table
- *   npm run waitlist -- --csv             write hoodmeetsboy-waitlist.csv
+ *   npm run waitlist -- --csv             write boymeetshood-waitlist.csv
  *   npm run waitlist -- --csv list.csv    write to a path you pick
- *   npm run waitlist -- --json            write hoodmeetsboy-waitlist.json
+ *   npm run waitlist -- --json            write boymeetshood-waitlist.json
  *   npm run waitlist -- --since 2026-09-01
  */
 import { writeFileSync } from 'node:fs';
@@ -23,8 +23,8 @@ function option(name, fallback) {
   return next && !next.startsWith('--') ? next : fallback;
 }
 
-const csvPath = option('csv', 'hoodmeetsboy-waitlist.csv');
-const jsonPath = option('json', 'hoodmeetsboy-waitlist.json');
+const csvPath = option('csv', 'boymeetshood-waitlist.csv');
+const jsonPath = option('json', 'boymeetshood-waitlist.json');
 const since = option('since', null);
 
 const url = process.env.DATABASE_URL;

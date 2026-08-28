@@ -1,35 +1,35 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://hoodmeetsboy.xyz';
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://boymeetshood.xyz';
 const description =
   '4,444 Boys. One Hood. Real Financial Utility. Genesis mint on Robinhood Chain — join the waitlist and claim your Hood Pass.';
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: 'HoodMeetsBoy — 4,444 Boys. One Hood. Real Financial Utility.',
-    template: '%s · HoodMeetsBoy',
+    default: 'BoyMeetsHood — 4,444 Boys. One Hood. Real Financial Utility.',
+    template: '%s · BoyMeetsHood',
   },
   description,
-  applicationName: 'HoodMeetsBoy',
-  keywords: ['HoodMeetsBoy', 'NFT', 'Robinhood Chain', 'ERC-6551', 'NFTFi', 'Hood Pass'],
+  applicationName: 'BoyMeetsHood',
+  keywords: ['BoyMeetsHood', 'NFT', 'Robinhood Chain', 'ERC-6551', 'NFTFi', 'Hood Pass'],
   alternates: { canonical: '/' },
   openGraph: {
     type: 'website',
     url: siteUrl,
-    siteName: 'HoodMeetsBoy',
-    title: 'HoodMeetsBoy — 4,444 Boys. One Hood. Real Financial Utility.',
+    siteName: 'BoyMeetsHood',
+    title: 'BoyMeetsHood — 4,444 Boys. One Hood. Real Financial Utility.',
     description,
-    images: [{ url: '/og.jpg', width: 1200, height: 630, alt: 'HoodMeetsBoy' }],
+    images: [{ url: '/og.jpg', width: 1200, height: 630, alt: 'BoyMeetsHood' }],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'HoodMeetsBoy — 4,444 Boys. One Hood. Real Financial Utility.',
+    title: 'BoyMeetsHood — 4,444 Boys. One Hood. Real Financial Utility.',
     description,
     images: ['/og.jpg'],
   },
-  appleWebApp: { capable: true, title: 'HoodMeetsBoy', statusBarStyle: 'black-translucent' },
+  appleWebApp: { capable: true, title: 'BoyMeetsHood', statusBarStyle: 'black-translucent' },
   robots: { index: true, follow: true },
 };
 

@@ -4,6 +4,7 @@
 // @ts-nocheck
 import { DCLogic } from '@/dc/DCLogic';
 
+const R = k => (window.__resources && window.__resources[k]) || '/assets/nft/' + k + '-sm.png';
 const CAT = [
   { n: 'ice', t: 'FROST', c: '#39c6f5' }, { n: 'flame', t: 'EMBER', c: '#ff6b18' },
   { n: 'cosmic', t: 'COSMIC', c: '#7c5cff' }, { n: 'gold', t: 'GILDED', c: '#ffd23b' },
@@ -21,10 +22,10 @@ const CAT = [
 ];
 
 const TOOLS = [
-  { name: 'Hood Credit', blurb: 'Borrow against your NFT without selling it. P2P offers, lending pools, BNPL.', src: '/assets/nft/ice-sm.png', g: '57,198,245', color: '#39c6f5', to: 'credit' },
-  { name: 'Hood AutoMint', blurb: 'Non-custodial minting terminal. Free for holders. Less clicking, less panic.', src: '/assets/nft/jungle-sm.png', g: '198,245,17', color: '#c6f511', to: 'automint' },
-  { name: 'Hood Treasury', blurb: 'Protocol revenue, routed by contract. The 70/30 flywheel.', src: '/assets/nft/devil-sm.png', g: '255,59,92', color: '#ff3b5c', to: 'treasury' },
-  { name: 'JUICE', blurb: 'The Hood needs a scoreboard. Earn it by actually using the protocol.', src: '/assets/nft/cosmic-sm.png', g: '124,92,255', color: '#22e1ff', to: 'juice' }
+  { name: 'Hood Credit', blurb: 'Borrow against your NFT without selling it. P2P offers, lending pools, BNPL.', src: R('ice'), g: '57,198,245', color: '#39c6f5', to: 'credit' },
+  { name: 'Hood AutoMint', blurb: 'Non-custodial minting terminal. Free for holders. Less clicking, less panic.', src: R('jungle'), g: '198,245,17', color: '#c6f511', to: 'automint' },
+  { name: 'Hood Treasury', blurb: 'Protocol revenue, routed by contract. The 70/30 flywheel.', src: R('devil'), g: '255,59,92', color: '#ff3b5c', to: 'treasury' },
+  { name: 'JUICE', blurb: 'The Hood needs a scoreboard. Earn it by actually using the protocol.', src: R('cosmic'), g: '124,92,255', color: '#22e1ff', to: 'juice' }
 ];
 
 const FLYWHEEL = ['NFT', 'Token-Bound Account', 'Hood Credit', 'Lending', 'AutoMint', 'Hood Treasury', 'More products'];
@@ -153,7 +154,7 @@ const ROOTS = { home: 1, vision: 1, toolkit: 1, peek: 1, waitlist: 1 };
 
 class Component extends DCLogic {
   state = {
-    splashOn: true, splashOut: false,
+    splashOn: true, splashOut: false, worldIn: false,
     screen: 'home', tab: 'home',
     showNotify: false, subscribed: false,
     wallet: '', followed: false, joined: false, flipped: false, queue: 11, pass: null,
@@ -167,7 +168,18 @@ class Component extends DCLogic {
       this.setState({ splashOn: false });
     } else {
       this.t1 = setTimeout(() => this.setState({ splashOut: true }), 1500);
-      this.t2 = setTimeout(() => this.setState({ splashOn: false }), 2300);
+      this.t2 = setTimeout(() => {
+        this.setState({ splashOn: false, worldIn: true });
+        const el = document.querySelector('[data-scroll]');
+        const hd = document.querySelector('[data-appbar]');
+        [el, hd].forEach((n, i) => {
+          if (!n) return;
+          n.style.animation = 'none';
+          void n.offsetWidth;
+          n.style.animation = 'hmbWorldIn ' + (i ? .46 : .58) + 's steps(9,end) 1';
+        });
+      }, 2380);
+      this.t3 = setTimeout(() => this.setState({ worldIn: false }), 3100);
     }
     this.tick = setInterval(() => this.setState({ now: Date.now() }), 1000);
     this.applyTheme();
@@ -190,7 +202,7 @@ class Component extends DCLogic {
   }
 
   componentWillUnmount() {
-    clearTimeout(this.t1); clearTimeout(this.t2); clearTimeout(this.toastT); clearInterval(this.tick);
+    clearTimeout(this.t1); clearTimeout(this.t2); clearTimeout(this.t3); clearTimeout(this.toastT); clearInterval(this.tick);
   }
 
   applyTheme() {
@@ -241,7 +253,7 @@ class Component extends DCLogic {
   submit = () => {
     const st = this.walletState();
     if (st === 'empty' || st === 'short') { this.flash('PASTE A WALLET ADDRESS OR ENS NAME'); return; }
-    if (!this.state.followed) { this.flash('FOLLOW @HOODMEETSBOY FIRST'); return; }
+    if (!this.state.followed) { this.flash('FOLLOW @BOYMEETSHOOD FIRST'); return; }
     const w = this.state.wallet.trim();
     const h = this.hash(w.toLowerCase());
     const hex = h.toString(16).toUpperCase().padStart(8, '0');
@@ -254,7 +266,7 @@ class Component extends DCLogic {
         num: '#' + String(h % 4444).padStart(4, '0'),
         ink: hex.slice(0, 4) + '-' + hex.slice(4, 8) + '-' + String(h % 4444).padStart(4, '0'),
         mood: m.k, moodColor: m.c, moodLine: m.line, wx: m.wx,
-        src: '/assets/nft/' + cat.n + '-sm.png',
+        src: R(cat.n),
         short: w.length > 13 ? w.slice(0, 6) + '…' + w.slice(-4) : w,
         full: w.toUpperCase(),
         date: MONTHS[d.getMonth()] + ' / ' + d.getFullYear(),
@@ -269,7 +281,7 @@ class Component extends DCLogic {
     const ms = Math.max(0, (this.target || 0) - s.now);
     const pad = n => String(n).padStart(2, '0');
     const title = TITLES[s.screen] || TITLES.home;
-    const art = i => ({ src: '/assets/nft/' + CAT[i % CAT.length].n + '-sm.png', tier: CAT[i % CAT.length].t, color: CAT[i % CAT.length].c });
+    const art = i => ({ src: R(CAT[i % CAT.length].n), tier: CAT[i % CAT.length].t, color: CAT[i % CAT.length].c });
 
     const wState = this.walletState();
     const done1 = s.followed ? 1 : 0;
@@ -290,7 +302,7 @@ class Component extends DCLogic {
     const wxKey = (p && p.wx) || 'rain';
     const shareText = p
       ? 'I just claimed my spot in the Hood.\n\nHOOD PASS ' + p.num + ' · MOOD · ' + p.mood + '\nWallet ' + p.short
-        + '\n\n4,444 Boys. One Hood. Real financial utility.\nOwn. Borrow. Lend. Build. Repeat.\n\n@HoodMeetsBoy #HoodMeetsBoy #NFTFi'
+        + '\n\n4,444 Boys. One Hood. Real financial utility.\nOwn. Borrow. Lend. Build. Repeat.\n\n@BoyMeetsHood #BoyMeetsHood #NFTFi'
       : '';
 
     const tabIcon = (on, i) => {
@@ -304,10 +316,10 @@ class Component extends DCLogic {
     };
 
     return {
-      splashOn: s.splashOn,
-      splashStyle: 'position:absolute;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;background:var(--lime,#c6f511);'
-        + 'transition:opacity .7s ease,transform .7s cubic-bezier(.7,0,.2,1);'
-        + (s.splashOut ? 'opacity:0;transform:translateY(-100%);pointer-events:none' : 'opacity:1;transform:translateY(0)'),
+      splashOn: s.splashOn, splashOut: s.splashOut, worldIn: s.worldIn,
+      splashWord: s.splashOut ? 'BREACHING' : 'ENTERING THE HOOD',
+      splashStyle: 'position:absolute;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;overflow:hidden;background:var(--lime,#c6f511);'
+        + (s.splashOut ? 'pointer-events:none;animation:hmbPortal .88s steps(8,end) both' : ''),
 
       headTitle: title[0], headSub: title[1],
       canBack: !ROOTS[s.screen], atRoot: !!ROOTS[s.screen],
@@ -394,11 +406,11 @@ class Component extends DCLogic {
       dot3: stepDot(s.joined), dot3Mark: s.joined ? '✓' : '3',
 
       followTap: () => {
-        try { window.open('https://x.com/HoodMeetsBoy', '_blank', 'noopener'); } catch (e) {}
+        try { window.open('https://x.com/BoyMeetsHood', '_blank', 'noopener'); } catch (e) {}
         this.setState({ followed: true });
         this.flash('OPENED X · FOLLOW CHECK PENDING AT DROP');
       },
-      followLabel: s.followed ? 'FOLLOWING @HOODMEETSBOY' : 'FOLLOW @HOODMEETSBOY',
+      followLabel: s.followed ? 'FOLLOWING @BOYMEETSHOOD' : 'FOLLOW @BOYMEETSHOOD',
       followStyle: 'margin-top:10px;width:100%;min-height:50px;border-radius:16px;cursor:pointer;font-family:\'Baloo 2\',cursive;font-weight:800;font-size:15px;letter-spacing:.2px;'
         + (s.followed
           ? 'border:1px solid rgba(198,245,17,.45);background:rgba(198,245,17,.12);color:var(--lime,#c6f511)'
@@ -418,7 +430,7 @@ class Component extends DCLogic {
           : 'border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);color:rgba(255,255,255,.35)'),
       doSubmit: () => { if (s.joined) { this.go('pass'); return; } this.submit(); },
 
-      pass: s.pass || { num: '#0000', ink: '0000-0000-0000', mood: MOODS[0].k, moodColor: MOODS[0].c, moodLine: MOODS[0].line, wx: 'rain', src: '/assets/nft/kid-sm.png', short: '0x0000…0000', full: '0X0000', date: 'AUGUST / 2026', code: 'HOOD-0000' },
+      pass: s.pass || { num: '#0000', ink: '0000-0000-0000', mood: MOODS[0].k, moodColor: MOODS[0].c, moodLine: MOODS[0].line, wx: 'rain', src: R('kid'), short: '0x0000…0000', full: '0X0000', date: 'AUGUST / 2026', code: 'HOOD-0000' },
       weather: WXBG[wxKey].concat(WXFX[wxKey]).map(x => ({ s: x })),
       weatherSoft: WXFX[wxKey].map(x => ({ s: x })),
       flipped: s.flipped,
