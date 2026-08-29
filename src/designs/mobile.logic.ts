@@ -264,7 +264,7 @@ class Component extends DCLogic {
       joined: true, flipped: false, queue: this.state.queue + 1, screen: 'pass',
       pass: {
         num: '#' + String(h % 4444).padStart(4, '0'),
-        ink: hex.slice(0, 4) + '-' + hex.slice(4, 8) + '-' + String(h % 4444).padStart(4, '0'),
+        ink: 'BOYS-' + hex.slice(0, 4) + '-' + hex.slice(4, 8),
         mood: m.k, moodColor: m.c, moodLine: m.line, wx: m.wx,
         src: R(cat.n),
         short: w.length > 13 ? w.slice(0, 6) + '…' + w.slice(-4) : w,
@@ -430,7 +430,7 @@ class Component extends DCLogic {
           : 'border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);color:rgba(255,255,255,.35)'),
       doSubmit: () => { if (s.joined) { this.go('pass'); return; } this.submit(); },
 
-      pass: s.pass || { num: '#0000', ink: '0000-0000-0000', mood: MOODS[0].k, moodColor: MOODS[0].c, moodLine: MOODS[0].line, wx: 'rain', src: R('kid'), short: '0x0000…0000', full: '0X0000', date: 'AUGUST / 2026', code: 'HOOD-0000' },
+      pass: s.pass || { num: '#0000', ink: 'BOYS-0000-0000', mood: MOODS[0].k, moodColor: MOODS[0].c, moodLine: MOODS[0].line, wx: 'rain', src: R('kid'), short: '0x0000…0000', full: '0X0000', date: 'AUGUST / 2026', code: 'HOOD-0000' },
       weather: WXBG[wxKey].concat(WXFX[wxKey]).map(x => ({ s: x })),
       weatherSoft: WXFX[wxKey].map(x => ({ s: x })),
       flipped: s.flipped,

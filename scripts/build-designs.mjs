@@ -102,6 +102,55 @@ function xAccount(text) {
 /** Brand rename first, then the handle — the handle rules match renamed text. */
 const finish = (text) => xAccount(rebrand(absolutizeAssets(text)));
 
+/**
+ * Finds where the element opening at `start` closes, by counting its own
+ * open/close tags. Used to lift a whole block out of the markup without
+ * hard-coding the closing tag's position.
+ */
+function elementEnd(text, start, tag = 'div') {
+  const pattern = new RegExp(`<(/?)${tag}\\b[^>]*>`, 'g');
+  pattern.lastIndex = start;
+  let depth = 0;
+
+  for (let match = pattern.exec(text); match; match = pattern.exec(text)) {
+    depth += match[1] ? -1 : 1;
+    if (depth === 0) return match.index + match[0].length;
+  }
+  return -1;
+}
+
+/**
+ * The pass carried an "INK 4F2C-3054-0780" serial whose last group was just the
+ * pass number repeated from the line above it. Re-cut as BOYS-XXXX-XXXX: the
+ * project's own prefix, the same 32 bits of hash entropy, and no duplication.
+ */
+function passCode(logic, name) {
+  if (name === 'desktop') {
+    return replaceOnce(
+      logic,
+      `ink: (hx.toString(16).toUpperCase() + 'HMB').slice(0, 4) + '-' + ((hx * 7) % 65536).toString(16).toUpperCase().padStart(4, '0') + '-' + String((hx % 4444) + 1).padStart(4, '0'),`,
+      `ink: 'BOYS-' + (hx.toString(16).toUpperCase() + 'HMB').slice(0, 4) + '-' + ((hx * 7) % 65536).toString(16).toUpperCase().padStart(4, '0'),`,
+      'desktop pass code is BOYS-XXXX-XXXX'
+    )
+      .replace(
+        `inkLine: p ? 'INK ' + p.ink : 'INK PENDING',`,
+        `inkLine: p ? p.ink : 'BOYS-PENDING',`
+      )
+      // Same label on the downloadable PNG — the serial now says BOYS- itself.
+      .replace(
+        `c.fillText('MOOD · ' + p.mood + '   INK ' + p.ink, 80, 638);`,
+        `c.fillText('MOOD · ' + p.mood + '   ' + p.ink, 80, 638);`
+      );
+  }
+
+  return replaceOnce(
+    logic,
+    `ink: hex.slice(0, 4) + '-' + hex.slice(4, 8) + '-' + String(h % 4444).padStart(4, '0'),`,
+    `ink: 'BOYS-' + hex.slice(0, 4) + '-' + hex.slice(4, 8),`,
+    'mobile pass code is BOYS-XXXX-XXXX'
+  ).replace(`ink: '0000-0000-0000'`, `ink: 'BOYS-0000-0000'`);
+}
+
 function extract(name) {
   const raw = readFileSync(join(SRC, `${name}.dc.html`), 'utf8');
 
@@ -144,11 +193,20 @@ function splitHelmet(template, name) {
 function buildDesktop() {
   const { template, logic, defaults } = extract('desktop');
   const { css, body } = splitHelmet(template, 'desktop');
+
+  // "INK" was the old name for the serial; the card now prints BOYS-XXXX-XXXX.
+  const copy = replaceOnce(
+    finish(body),
+    'UNIQUE INK IS GENERATED SERVER-SIDE ON RELEASE',
+    'YOUR UNIQUE CODE IS GENERATED SERVER-SIDE ON RELEASE',
+    'desktop disclaimer drops the INK wording'
+  );
+
   return {
     name: 'desktop',
     css: finish(css),
-    template: finish(body),
-    logic: finish(logic),
+    template: copy,
+    logic: passCode(finish(logic), 'desktop'),
     defaults,
   };
 }
@@ -184,20 +242,7 @@ function gateCountdown(screen) {
   const start = out.indexOf(rowOpen);
   if (start === -1) throw new Error('patch "gate countdown": countdown row not found');
 
-  // Walk the row's own <div>/</div> pairs to find where it closes.
-  let depth = 0;
-  let cursor = start;
-  let end = -1;
-  const tag = /<(\/?)div\b[^>]*>/g;
-  tag.lastIndex = start;
-  for (let m = tag.exec(out); m; m = tag.exec(out)) {
-    depth += m[1] ? -1 : 1;
-    cursor = m.index + m[0].length;
-    if (depth === 0) {
-      end = cursor;
-      break;
-    }
-  }
+  const end = elementEnd(out, start);
   if (end === -1) throw new Error('patch "gate countdown": countdown row never closes');
 
   const row = out.slice(start, end);
@@ -209,6 +254,40 @@ function gateCountdown(screen) {
 
   out = out.slice(0, start) + gated + out.slice(end);
   return out;
+}
+
+/**
+ * Drops the "INVITE CODE / COPY" card from the pass screen.
+ *
+ * It promised a referral that does not exist — the code was derived from the
+ * wallet hash client-side, nothing consumed it, and no backend counted who used
+ * whose. Shipping a copy button next to "friends who join with your code move
+ * you up the queue" would be telling people something untrue about their place
+ * in line, so both the card and that sentence go.
+ */
+function dropInviteCode(screen) {
+  const label = '>INVITE CODE<';
+  const at = screen.indexOf(label);
+  if (at === -1) throw new Error('patch "drop invite code": the INVITE CODE card is gone');
+
+  // Walk back to the card wrapper, then forward to where it closes.
+  const start = screen.lastIndexOf('<div style="display:flex;align-items:center', at);
+  if (start === -1) throw new Error('patch "drop invite code": card wrapper not found');
+  const end = elementEnd(screen, start);
+  if (end === -1) throw new Error('patch "drop invite code": card never closes');
+
+  let out = screen.slice(0, start) + screen.slice(end).replace(/^\s*\n\s*\n/, '\n\n              ');
+
+  out = replaceOnce(
+    out,
+    'FRIENDS WHO JOIN WITH YOUR CODE MOVE YOU UP THE QUEUE. UNIQUE INK IS GENERATED SERVER-SIDE ON RELEASE.',
+    'YOUR UNIQUE CODE IS GENERATED SERVER-SIDE ON RELEASE.',
+    'no referral claim in the pass disclaimer'
+  );
+
+  // The serial is self-describing now that it reads BOYS-…; the label was
+  // explaining a word ("INK") the card no longer uses.
+  return out.split('INK {{ pass.ink }}').join('{{ pass.ink }}');
 }
 
 /**
@@ -245,6 +324,7 @@ function buildMobile() {
   );
 
   screen = gateCountdown(screen);
+  screen = dropInviteCode(screen);
 
   // The bezel gave the screen its height; now the viewport does.
   const shell =
@@ -256,7 +336,7 @@ function buildMobile() {
     name: 'mobile',
     css: finish(css),
     template: finish(shell),
-    logic: finish(logic),
+    logic: passCode(finish(logic), 'mobile'),
     defaults,
   };
 }

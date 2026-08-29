@@ -75,7 +75,7 @@ class Component extends DCLogic {
       issued: mon + ' / ' + d.getFullYear(),
       mood: tier.label,
       word: tier.words[(hx >> 3) % tier.words.length],
-      ink: (hx.toString(16).toUpperCase() + 'HMB').slice(0, 4) + '-' + ((hx * 7) % 65536).toString(16).toUpperCase().padStart(4, '0') + '-' + String((hx % 4444) + 1).padStart(4, '0'),
+      ink: 'BOYS-' + (hx.toString(16).toUpperCase() + 'HMB').slice(0, 4) + '-' + ((hx * 7) % 65536).toString(16).toUpperCase().padStart(4, '0'),
       seed: hx
     };
   }
@@ -232,7 +232,7 @@ class Component extends DCLogic {
     c.font = '700 18px "Space Mono", monospace';
     c.fillStyle = t.faint;
     c.font = '400 16px "Space Mono", monospace';
-    c.fillText('MOOD · ' + p.mood + '   INK ' + p.ink, 80, 638);
+    c.fillText('MOOD · ' + p.mood + '   ' + p.ink, 80, 638);
     const a = document.createElement('a');
     a.href = cv.toDataURL('image/png');
     a.download = 'hood-pass-' + p.no.replace('#', '') + '.png';
@@ -678,7 +678,7 @@ class Component extends DCLogic {
       onClose: this.onClose,
       stop: this.stop,
       tierBg: t.bg,
-      inkLine: p ? 'INK ' + p.ink : 'INK PENDING',
+      inkLine: p ? p.ink : 'BOYS-PENDING',
       passCardStyle: 'position:relative;border-radius:30px;padding:2px;transform-style:preserve-3d;'
         + 'background:linear-gradient(115deg,#c9b6ff,#22e1ff,#c6f511,#ff6bd5,#c9b6ff);background-size:200% 100%;'
         + 'box-shadow:0 0 0 1px rgba(255,255,255,.2),0 30px 90px -20px rgba(124,92,255,.85),0 0 120px -30px rgba(34,225,255,.6);'

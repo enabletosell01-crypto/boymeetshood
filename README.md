@@ -185,6 +185,22 @@ Two of those patches rewrite copy, and they are deliberately separate:
   (`boymeetsh00d`, with zeros); folding it into the rename would silently
   repoint the follow button whenever the brand changed. The `#BoyMeetsHood`
   hashtag stays — a hashtag is brand text, not an account.
+- `passCode()` recuts the pass serial as `BOYS-XXXX-XXXX`. The handoff printed
+  `INK 4F2C-3054-0780`, whose last group was the pass number repeated from the
+  line above it.
+- `dropInviteCode()` removes the "INVITE CODE / COPY" card from the pass
+  screen. See below.
+
+### Why there is no invite code
+
+The handoff shipped one, and it looked real: a code on the pass, a copy button,
+and "friends who join with your code move you up the queue". None of it was
+connected to anything — the code was derived from the wallet hash in the
+browser, nothing ever sent it anywhere, and no column records who referred whom.
+Shipping it would have told people something untrue about their position in
+line, so the card and that sentence are patched out. If a referral programme is
+ever built for real, `waitlist` needs a `referred_by` column and the code needs
+to travel with the POST; the card can come back then.
 
 ## Notes
 
