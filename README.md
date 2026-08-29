@@ -92,6 +92,31 @@ showed up first, and a `pass_no` already on file survives a re-submit that
 sends none. No IP address is stored; only the coarse country header Vercel
 provides.
 
+## Shared pass cards
+
+X gives a web page no way to attach an image to a tweet — `intent/post` takes
+text and a URL and nothing else. A picture only appears if the tweet carries a
+URL whose page advertises one, so every pass gets a page:
+
+```
+/p/<token>                      landing page + card metadata
+/p/<token>/opengraph-image      the card, rendered per request
+/p/<token>/twitter-image        same image; X reads this one
+```
+
+The token is base64url of `<hash>|<short wallet>`. The hash rather than the
+address: it is one-way, and everything on the card except the address label
+derives from it, so a link built to be posted publicly never carries the full
+wallet. `src/lib/pass.ts` ports the design's derivation exactly, so the card
+matches what the visitor saw.
+
+`metadataBase` for these pages comes off the request host rather than an env
+var, so the card resolves on `*.vercel.app`, on preview deployments and on the
+custom domain without anything having to be configured first.
+
+The share URL itself is built client-side from `window.location.origin` in
+`src/designs/*.tsx`, for the same reason.
+
 ## The intro
 
 The lime splash holds for 1.5s, flips its caption to BREACHING, then tears

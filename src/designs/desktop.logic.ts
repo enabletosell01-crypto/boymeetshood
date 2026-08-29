@@ -128,12 +128,12 @@ class Component extends DCLogic {
   }
 
   onPost = () => {
-    const url = 'https://x.com/intent/post?text=' + encodeURIComponent(this.tweet()) + '&url=' + encodeURIComponent('https://boymeetshood.xyz');
+    const url = 'https://x.com/intent/post?text=' + encodeURIComponent(this.tweet()) + '&url=' + encodeURIComponent(this.shareUrl || 'https://boymeetshood.xyz');
     window.open(url, '_blank', 'noopener');
   };
 
   onCopy = () => {
-    const txt = this.tweet();
+    const txt = this.tweet() + (this.shareUrl ? '\n\n' + this.shareUrl : '');
     const done = () => { this.setState({ copied: true }); setTimeout(() => this.setState({ copied: false }), 1800); };
     if (navigator.clipboard) navigator.clipboard.writeText(txt).then(done, done); else done();
   };

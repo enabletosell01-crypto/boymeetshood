@@ -151,6 +151,42 @@ function passCode(logic, name) {
   ).replace(`ink: '0000-0000-0000'`, `ink: 'BOYS-0000-0000'`);
 }
 
+/**
+ * Makes the shared tweet carry a link to the visitor's own pass page.
+ *
+ * X has no way to attach an image from a web page — `intent/post` takes text
+ * and a URL, nothing else. A picture only appears if the tweet contains a URL
+ * whose page advertises a card image, which is what /p/<token> does. The mobile
+ * design was passing no URL at all, so its tweets could never show anything.
+ *
+ * `this.shareUrl` is set by the wrapper in src/designs/*.tsx once a pass
+ * exists; every use falls back so a missing URL degrades to the old behaviour
+ * rather than breaking the button.
+ */
+function shareLink(logic, name) {
+  if (name === 'desktop') {
+    return replaceOnce(
+      logic,
+      `encodeURIComponent('https://boymeetshood.xyz');`,
+      `encodeURIComponent(this.shareUrl || 'https://boymeetshood.xyz');`,
+      'desktop tweet links to the pass page'
+    ).replace(
+      `    const txt = this.tweet();`,
+      `    const txt = this.tweet() + (this.shareUrl ? '\\n\\n' + this.shareUrl : '');`
+    );
+  }
+
+  return replaceOnce(
+    logic,
+    `'https://x.com/intent/tweet?text=' + encodeURIComponent(shareText)`,
+    `'https://x.com/intent/tweet?text=' + encodeURIComponent(shareText) + (this.shareUrl ? '&url=' + encodeURIComponent(this.shareUrl) : '')`,
+    'mobile tweet links to the pass page'
+  ).replace(
+    `copyText: () => this.copy(shareText, 'SHARE TEXT COPIED'),`,
+    `copyText: () => this.copy(shareText + (this.shareUrl ? '\\n\\n' + this.shareUrl : ''), 'SHARE TEXT COPIED'),`
+  );
+}
+
 function extract(name) {
   const raw = readFileSync(join(SRC, `${name}.dc.html`), 'utf8');
 
@@ -206,7 +242,7 @@ function buildDesktop() {
     name: 'desktop',
     css: finish(css),
     template: copy,
-    logic: passCode(finish(logic), 'desktop'),
+    logic: shareLink(passCode(finish(logic), 'desktop'), 'desktop'),
     defaults,
   };
 }
@@ -336,7 +372,7 @@ function buildMobile() {
     name: 'mobile',
     css: finish(css),
     template: finish(shell),
-    logic: passCode(finish(logic), 'mobile'),
+    logic: shareLink(passCode(finish(logic), 'mobile'), 'mobile'),
     defaults,
   };
 }

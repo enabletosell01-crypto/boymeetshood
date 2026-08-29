@@ -2,6 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import type { ComponentType } from 'react';
+import { encodePassToken } from '@/lib/pass';
 import { fetchWaitlistTotal, reportWaitlistJoin } from '@/lib/waitlist-client';
 import RawLogic from './mobile.logic';
 import { css, defaultProps, template } from './mobile.design';
@@ -90,6 +91,10 @@ class MobileApp extends Base {
 
     if (!prevState.joined && this.state.joined) {
       const wallet = String(this.state.wallet ?? '').trim();
+
+      // See desktop.tsx — the tweet needs a URL X can fetch, or no card appears.
+      this.shareUrl = `${window.location.origin}/p/${encodePassToken(wallet)}`;
+
       void reportWaitlistJoin({
         wallet,
         passNo: this.state.pass?.num ?? null,

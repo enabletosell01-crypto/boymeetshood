@@ -2,6 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import type { ComponentType } from 'react';
+import { encodePassToken } from '@/lib/pass';
 import { fetchWaitlistTotal, reportWaitlistJoin } from '@/lib/waitlist-client';
 import RawLogic from './desktop.logic';
 import { css, defaultProps, template } from './desktop.design';
@@ -36,6 +37,11 @@ class DesktopSite extends Base {
 
     const pass = this.state.pass;
     if (!prevState.pass && pass?.addr) {
+      // Built from the live origin rather than NEXT_PUBLIC_SITE_URL: X can only
+      // render a card for a URL it can actually fetch, and the custom domain is
+      // not attached yet.
+      this.shareUrl = `${window.location.origin}/p/${encodePassToken(pass.addr)}`;
+
       void reportWaitlistJoin({ wallet: pass.addr, passNo: pass.no, source: 'desktop' }).then(
         (total) => {
           if (total !== null && total > 0) this.setState({ queue: total });

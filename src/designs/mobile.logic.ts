@@ -446,10 +446,10 @@ class Component extends DCLogic {
       perks: PERKS,
       shareText: shareText,
       postX: () => {
-        try { window.open('https://x.com/intent/tweet?text=' + encodeURIComponent(shareText), '_blank', 'noopener'); } catch (e) {}
+        try { window.open('https://x.com/intent/tweet?text=' + encodeURIComponent(shareText) + (this.shareUrl ? '&url=' + encodeURIComponent(this.shareUrl) : ''), '_blank', 'noopener'); } catch (e) {}
         this.flash('OPENING X · TEXT PRE-FILLED');
       },
-      copyText: () => this.copy(shareText, 'SHARE TEXT COPIED'),
+      copyText: () => this.copy(shareText + (this.shareUrl ? '\n\n' + this.shareUrl : ''), 'SHARE TEXT COPIED'),
       copyInvite: () => this.copy(s.pass ? s.pass.code : 'HOOD-0000', 'INVITE CODE COPIED'),
       saveCard: () => {
         if (navigator.share) { try { navigator.share({ text: shareText }); return; } catch (e) {} }

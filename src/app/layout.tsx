@@ -1,7 +1,15 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://boymeetshood.xyz';
+// Vercel sets VERCEL_PROJECT_PRODUCTION_URL to the project's live production
+// domain and moves it to the custom domain once one is attached, so it stays
+// correct on its own. NEXT_PUBLIC_SITE_URL remains the manual override for
+// local work and non-Vercel hosts.
+const siteUrl =
+  (process.env.VERCEL_PROJECT_PRODUCTION_URL &&
+    `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`) ||
+  process.env.NEXT_PUBLIC_SITE_URL ||
+  'https://boymeetshood.xyz';
 const description =
   '4,444 Boys. One Hood. Real Financial Utility. Genesis mint on Robinhood Chain — join the waitlist and claim your Hood Pass.';
 
