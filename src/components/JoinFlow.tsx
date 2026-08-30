@@ -199,14 +199,21 @@ export default function JoinFlow({ open, onClose, source, onJoined }: JoinFlowPr
       aria-modal="true"
       aria-label="Submit waitlist"
       onClick={close}
+      className="bmh-viewport"
       style={{
         position: 'fixed',
-        inset: 0,
+        top: 0,
+        left: 0,
+        right: 0,
         zIndex: 2000,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         padding: 16,
+        // globals.css deliberately ships no reset — the designs depend on the
+        // default box model — so the overlay has to opt in, or its padding adds
+        // to 100svh and pushes the panel past the bottom of a short screen.
+        boxSizing: 'border-box',
         background: 'rgba(4,5,8,.78)',
         backdropFilter: 'blur(16px)',
         WebkitBackdropFilter: 'blur(16px)',
@@ -222,7 +229,7 @@ export default function JoinFlow({ open, onClose, source, onJoined }: JoinFlowPr
           position: 'relative',
           width: '100%',
           maxWidth: 520,
-          maxHeight: 'calc(100dvh - 32px)',
+          maxHeight: '100%',
           overflowY: 'auto',
           borderRadius: 30,
           padding: 1,

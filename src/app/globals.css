@@ -29,3 +29,38 @@ html[data-hmb-mode='mobile'] body {
 [style*='scrollbar-width']::-webkit-scrollbar {
   display: none;
 }
+
+/*
+ * Viewport height that never reaches under the browser's own chrome.
+ *
+ * `dvh` is the *dynamic* viewport, and in an in-app browser — X's, in
+ * particular — it resolves to the tall one and keeps going behind the URL bar.
+ * A fixed shell sized that way centres its contents against a box taller than
+ * anything the reader can see, which is why the splash logo sat low. `svh` is
+ * the small viewport: the size with the chrome showing, which for an in-app
+ * browser is the size, full stop.
+ *
+ * The `dvh` line stays as the fallback for anything too old to know `svh`.
+ */
+/*
+ * The two-declaration fallback does not survive minification — the build drops
+ * the first line — so the override lives behind @supports, which it cannot
+ * collapse. Base is `vh`: wrong under an in-app browser, but never zero.
+ */
+.bmh-viewport {
+  height: 100vh;
+}
+
+.bmh-viewport-min {
+  min-height: 100vh;
+}
+
+@supports (height: 100svh) {
+  .bmh-viewport {
+    height: 100svh;
+  }
+
+  .bmh-viewport-min {
+    min-height: 100svh;
+  }
+}

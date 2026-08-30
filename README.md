@@ -264,6 +264,29 @@ line, so the card and that sentence are patched out. If a referral programme is
 ever built for real, `waitlist` needs a `referred_by` column and the code needs
 to travel with the POST; the card can come back then.
 
+## Viewport height on mobile
+
+Anything that fills the screen — the app shell, the join overlay, the pass page
+— sizes itself with `.bmh-viewport` / `.bmh-viewport-min` from
+`src/app/globals.css`, never with `100vh` or `100dvh` inline.
+
+`dvh` is the *dynamic* viewport, and inside an in-app browser (X's especially)
+it resolves to the tall one and keeps going behind the URL bar. A fixed shell
+sized that way centres its contents against a box taller than anything the
+reader can see, which is exactly why the splash logo sat low in the X browser
+while looking fine everywhere else. `svh` is the small viewport — the size with
+chrome showing, which in an in-app browser is simply the size.
+
+Two details worth keeping:
+
+- The override sits inside `@supports (height: 100svh)`. Written as two plain
+  declarations the minifier drops the first one, which would leave older
+  browsers with no height at all rather than a fallback.
+- The join overlay sets `box-sizing: border-box` on itself. `globals.css` ships
+  no reset on purpose — both designs depend on the default box model — so its
+  16px padding would otherwise add to the viewport height and push the panel
+  off the bottom of a short screen.
+
 ## Notes
 
 - The designs are rendered on the client. Metadata, OG tags, `robots.txt` and

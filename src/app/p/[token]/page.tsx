@@ -48,14 +48,15 @@ export default async function PassPage({ params }: Props) {
 
   return (
     <main
+      className="bmh-viewport-min"
       style={{
-        minHeight: '100dvh',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: 26,
-        padding: '48px 24px',
+        gap: 20,
+        padding: '28px 20px calc(env(safe-area-inset-bottom, 0px) + 28px)',
+        boxSizing: 'border-box',
         textAlign: 'center',
         fontFamily: "'Outfit', system-ui, sans-serif",
         color: '#fff',
@@ -64,53 +65,85 @@ export default async function PassPage({ params }: Props) {
     >
       {pass ? (
         <>
-          <div style={{ fontFamily: "'Space Mono', monospace", fontSize: 12, letterSpacing: '.28em', color: '#c6f511' }}>
-            HOOD PASS {pass.number} · {pass.mood.key}
+          {/* The same render X puts in the timeline — so the page a click lands
+              on shows the thing that was clicked, not a text summary of it. */}
+          <div
+            style={{
+              width: '100%',
+              maxWidth: 560,
+              aspectRatio: '1200 / 630',
+              borderRadius: 20,
+              overflow: 'hidden',
+              border: '1px solid rgba(255,255,255,.14)',
+              boxShadow: '0 30px 70px -30px rgba(0,0,0,.9)',
+            }}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={`/p/${token}/opengraph-image`}
+              alt={`Hood Pass ${pass.number} · ${pass.mood.key}`}
+              width={1200}
+              height={630}
+              style={{ width: '100%', height: '100%', display: 'block' }}
+            />
           </div>
+
           <h1
             style={{
               margin: 0,
+              maxWidth: '20ch',
               fontFamily: "'Baloo 2', cursive",
               fontWeight: 800,
-              fontSize: 'clamp(30px,7vw,58px)',
+              fontSize: 'clamp(26px,6.4vw,40px)',
+              lineHeight: 1.1,
               letterSpacing: '-.02em',
+              textWrap: 'balance',
             }}
           >
             {pass.shortWallet} is in the Hood.
           </h1>
-          <p style={{ margin: 0, maxWidth: '32ch', fontSize: 17, lineHeight: 1.6, color: 'rgba(255,255,255,.7)' }}>
-            {pass.mood.line}
-          </p>
-          <div style={{ fontFamily: "'Space Mono', monospace", fontSize: 12, letterSpacing: '.2em', color: 'rgba(255,255,255,.4)' }}>
-            {pass.code} · {pass.issued}
-          </div>
+
+          <Link href="/" style={ctaStyle}>
+            CLAIM YOUR OWN SPOT
+          </Link>
         </>
       ) : (
-        <h1 style={{ margin: 0, fontFamily: "'Baloo 2', cursive", fontWeight: 800, fontSize: 'clamp(28px,6vw,48px)' }}>
-          That pass link is not readable.
-        </h1>
+        <>
+          <h1 style={{ margin: 0, fontFamily: "'Baloo 2', cursive", fontWeight: 800, fontSize: 'clamp(26px,6vw,42px)' }}>
+            That pass link is not readable.
+          </h1>
+          <Link href="/" style={ctaStyle}>
+            CLAIM YOUR OWN SPOT
+          </Link>
+        </>
       )}
 
-      <Link
-        href="/"
+      <p
         style={{
-          marginTop: 8,
-          background: '#c6f511',
-          color: '#0d0f12',
-          fontFamily: "'Baloo 2', cursive",
-          fontWeight: 800,
-          fontSize: 18,
-          padding: '16px 30px',
-          borderRadius: 999,
-          textDecoration: 'none',
+          margin: 0,
+          fontFamily: "'Space Mono', monospace",
+          fontSize: 9.5,
+          letterSpacing: '.12em',
+          lineHeight: 1.8,
+          color: 'rgba(255,255,255,.32)',
+          maxWidth: '44ch',
         }}
       >
-        CLAIM YOUR OWN SPOT
-      </Link>
-
-      <p style={{ margin: 0, fontFamily: "'Space Mono', monospace", fontSize: 10, letterSpacing: '.14em', color: 'rgba(255,255,255,.3)', maxWidth: '46ch', lineHeight: 1.8 }}>
-        THE PASS RECORDS INTEREST ONLY — IT IS NOT AN ALLOWLIST SPOT, A TOKEN, OR A RIGHT TO MINT.
+        THE PASS RECORDS INTEREST ONLY — IT IS NOT AN ALLOWLIST SPOT, A TOKEN, OR A
+        RIGHT TO MINT.
       </p>
     </main>
   );
 }
+
+const ctaStyle = {
+  background: '#c6f511',
+  color: '#0d0f12',
+  fontFamily: "'Baloo 2', cursive",
+  fontWeight: 800,
+  fontSize: 17,
+  padding: '15px 30px',
+  borderRadius: 999,
+  textDecoration: 'none',
+  boxShadow: '0 14px 40px -14px rgba(198,245,17,.8)',
+} as const;

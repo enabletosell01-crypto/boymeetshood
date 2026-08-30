@@ -364,7 +364,7 @@ function buildMobile() {
 
   // The bezel gave the screen its height; now the viewport does.
   const shell =
-    '<div style="position:fixed;top:0;left:0;right:0;height:100dvh;overflow:hidden;overscroll-behavior:none">\n' +
+    '<div class="bmh-viewport" style="position:fixed;top:0;left:0;right:0;overflow:hidden;overscroll-behavior:none">\n' +
     screen +
     '\n</div>';
 
