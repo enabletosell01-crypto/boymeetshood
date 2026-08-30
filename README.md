@@ -92,6 +92,43 @@ showed up first, and a `pass_no` already on file survives a re-submit that
 sends none. No IP address is stored; only the coarse country header Vercel
 provides.
 
+## The join flow
+
+`src/components/JoinFlow.tsx`. One implementation, opened from every waitlist
+entry point in both designs:
+
+```
+handle  →  pass is minted  →  claim it  →  wallet
+ @you      the share card     quote        0x… / .eth
+            you will post     like
+                              comment
+```
+
+The pass keys off the **X handle**, not the wallet, so the card carries a name
+people recognise in a timeline. Step two previews it by loading
+`/p/<token>/opengraph-image` — the same route X fetches, so nobody is shown one
+picture and posts another.
+
+`NEXT_PUBLIC_LAUNCH_POST_URL` names the post to quote/like/reply to. Without
+it the claim step falls back to a single follow task rather than pointing at
+nothing.
+
+### What the flow can and cannot know
+
+Nothing in a browser can confirm a like, a quote or a reply — that needs the X
+API and an authorised account. Each step opens the real intent and records what
+the visitor says they did, stored in `quoted` / `liked` / `commented`, and the
+copy on the step says exactly that. Treat those columns as claims to check
+against the account before the drop, not as verified facts.
+
+A handle already on the list under a *different* wallet is rejected (409)
+rather than silently overwritten: that is either a typo or someone farming
+spots, and either way overwriting moves somebody else's place in the queue.
+
+Joining hands the pass back to the design — the header chip flips to
+`PASS #NNNN`, the home CTA becomes "view your Hood Pass", and the design's own
+pass screen renders it — so the app never insists you have not joined.
+
 ## Shared pass cards
 
 X gives a web page no way to attach an image to a tweet — `intent/post` takes

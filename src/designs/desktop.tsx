@@ -1,9 +1,9 @@
 'use client';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import type { ComponentType } from 'react';
-import { encodePassToken } from '@/lib/pass';
-import { fetchWaitlistTotal, reportWaitlistJoin } from '@/lib/waitlist-client';
+import { useCallback, useRef, useState, type ComponentType } from 'react';
+import JoinFlow from '@/components/JoinFlow';
+import { fetchWaitlistTotal } from '@/lib/waitlist-client';
 import RawLogic from './desktop.logic';
 import { css, defaultProps, template } from './desktop.design';
 
@@ -32,36 +32,49 @@ class DesktopSite extends Base {
     });
   }
 
+  /** The design's own waitlist modal is replaced by the shared join flow. */
+  renderVals() {
+    return {
+      ...super.renderVals(),
+      onOpen: (event: any) => {
+        event?.preventDefault?.();
+        this.props.onOpenJoin?.();
+      },
+    };
+  }
+
   componentDidUpdate(prevProps: any, prevState: any) {
     super.componentDidUpdate?.(prevProps, prevState);
-
-    const pass = this.state.pass;
-    if (!prevState.pass && pass?.addr) {
-      // Built from the live origin rather than NEXT_PUBLIC_SITE_URL: X can only
-      // render a card for a URL it can actually fetch, and the custom domain is
-      // not attached yet.
-      this.shareUrl = `${window.location.origin}/p/${encodePassToken(pass.addr)}`;
-
-      void reportWaitlistJoin({ wallet: pass.addr, passNo: pass.no, source: 'desktop' }).then(
-        (total) => {
-          if (total !== null && total > 0) this.setState({ queue: total });
-        }
-      );
-    }
   }
 }
 
 const Site = DesktopSite as unknown as ComponentType<Record<string, unknown>>;
 
 export default function DesktopDesign() {
+  const [joinOpen, setJoinOpen] = useState(false);
+  const site = useRef<any>(null);
+
+  const onJoined = useCallback((total: number) => {
+    // Keep the design's queue label honest once a real join lands.
+    site.current?.setState({ queue: total });
+  }, []);
+
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: css }} />
       <Site
+        ref={site}
         {...defaultProps}
         splashEnabled={introEnabled && defaultProps.splashEnabled}
         glitchIntro={introEnabled && defaultProps.glitchIntro}
+        onOpenJoin={() => setJoinOpen(true)}
         __dcTemplate={template}
+      />
+      <JoinFlow
+        open={joinOpen}
+        onClose={() => setJoinOpen(false)}
+        source="desktop"
+        onJoined={onJoined}
       />
     </>
   );

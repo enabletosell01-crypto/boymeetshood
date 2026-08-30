@@ -43,13 +43,17 @@ export async function GET(request: Request) {
 
   if (url.searchParams.get('format') === 'csv') {
     const rows = [
-      'position,wallet,source,pass_no,joined_at,country',
+      'position,x_username,wallet,pass_no,quoted,liked,commented,source,joined_at,country',
       ...entries.map((entry) =>
         [
           entry.position,
+          csvCell(entry.xUsername),
           csvCell(entry.wallet),
-          csvCell(entry.source),
           csvCell(entry.passNo),
+          entry.quoted,
+          entry.liked,
+          entry.commented,
+          csvCell(entry.source),
           csvCell(entry.joinedAt),
           csvCell(entry.country),
         ].join(',')

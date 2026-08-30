@@ -1,9 +1,10 @@
 'use client';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import type { ComponentType } from 'react';
-import { encodePassToken } from '@/lib/pass';
-import { fetchWaitlistTotal, reportWaitlistJoin } from '@/lib/waitlist-client';
+import { useCallback, useRef, useState, type ComponentType } from 'react';
+import JoinFlow from '@/components/JoinFlow';
+import { encodePassToken, hashIdentity, passFromHash, toDesignPass } from '@/lib/pass';
+import { fetchWaitlistTotal } from '@/lib/waitlist-client';
 import RawLogic from './mobile.logic';
 import { css, defaultProps, template } from './mobile.design';
 
@@ -78,8 +79,24 @@ class MobileApp extends Base {
 
   renderVals() {
     const live = mintTarget() !== null;
+    const vals = super.renderVals();
+    const openJoin = () => this.props.onOpenJoin?.();
+
+    // Every route into the design's own waitlist screen — the home button, the
+    // header JOIN, the tab bar — hands off to the shared flow instead. Once a
+    // pass exists that screen is a stale copy of a form nobody can complete
+    // again, so those same routes point at the pass screen rather than at it.
+    const waitlist = this.state.joined ? vals.goPass : openJoin;
+    const swap = (rows: any[]) =>
+      Array.isArray(rows)
+        ? rows.map((row) => (row?.label === 'WAITLIST' ? { ...row, go: waitlist } : row))
+        : rows;
+
     return {
-      ...super.renderVals(),
+      ...vals,
+      goWaitlist: waitlist,
+      tabs: swap(vals.tabs),
+      jumps: swap(vals.jumps),
       mintLive: live,
       mintTba: !live,
       mintEyebrow: live ? 'GENESIS MINT · ESTIMATED' : 'GENESIS MINT · DATE TBA',
@@ -88,35 +105,46 @@ class MobileApp extends Base {
 
   componentDidUpdate(prevProps: any, prevState: any) {
     super.componentDidUpdate?.(prevProps, prevState);
-
-    if (!prevState.joined && this.state.joined) {
-      const wallet = String(this.state.wallet ?? '').trim();
-
-      // See desktop.tsx — the tweet needs a URL X can fetch, or no card appears.
-      this.shareUrl = `${window.location.origin}/p/${encodePassToken(wallet)}`;
-
-      void reportWaitlistJoin({
-        wallet,
-        passNo: this.state.pass?.num ?? null,
-        source: 'mobile',
-      }).then((total) => {
-        if (total !== null && total > 0) this.setState({ queue: total });
-      });
-    }
   }
 }
 
 const App = MobileApp as unknown as ComponentType<Record<string, unknown>>;
 
 export default function MobileDesign() {
+  const [joinOpen, setJoinOpen] = useState(false);
+  const app = useRef<any>(null);
+
+  /**
+   * Hand the finished pass back to the design so the app agrees it happened:
+   * the header chip flips, "join the waitlist" becomes "view your Hood Pass",
+   * and the design's own pass screen renders the pass the flow just minted.
+   */
+  const onJoined = useCallback((total: number, handle: string, wallet: string) => {
+    const instance = app.current;
+    if (!instance) return;
+
+    const pass = passFromHash(hashIdentity(handle), `@${handle}`);
+    // The design's POST ON X reads this; without it the tweet loses its card.
+    instance.shareUrl = `${window.location.origin}/p/${encodePassToken(handle, `@${handle}`)}`;
+    instance.setState({ joined: true, queue: total, pass: toDesignPass(pass, wallet) });
+  }, []);
+
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: css }} />
       <App
+        ref={app}
         {...defaultProps}
         splash={introEnabled && defaultProps.splash}
         glitch={introEnabled && defaultProps.glitch}
+        onOpenJoin={() => setJoinOpen(true)}
         __dcTemplate={template}
+      />
+      <JoinFlow
+        open={joinOpen}
+        onClose={() => setJoinOpen(false)}
+        source="mobile"
+        onJoined={onJoined}
       />
     </>
   );

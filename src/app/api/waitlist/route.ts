@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
+import { normalizeHandle } from '@/lib/pass';
 import {
   countEntries,
+  HandleTakenError,
   isConfigured,
   isMissingTable,
   normalizeWallet,
@@ -30,6 +32,12 @@ function rateLimited(key: string): boolean {
 }
 
 function databaseError(error: unknown) {
+  if (error instanceof HandleTakenError) {
+    return NextResponse.json(
+      { ok: false, error: 'That X handle is already on the list with another wallet.' },
+      { status: 409 }
+    );
+  }
   if (isMissingTable(error)) {
     console.error('[waitlist] the waitlist table is missing — run: npm run db:setup');
     return NextResponse.json(
@@ -94,6 +102,10 @@ export async function POST(request: Request) {
       source: body.source === 'mobile' ? 'mobile' : 'desktop',
       passNo: typeof body.passNo === 'string' ? body.passNo.slice(0, 16) : null,
       country: request.headers.get('x-vercel-ip-country'),
+      xUsername: typeof body.xUsername === 'string' ? normalizeHandle(body.xUsername) : null,
+      quoted: body.quoted === true,
+      liked: body.liked === true,
+      commented: body.commented === true,
     });
 
     return NextResponse.json(

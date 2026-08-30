@@ -24,3 +24,15 @@ create table if not exists waitlist (
 
 -- Queue position and the export are both ordered by arrival.
 create index if not exists waitlist_joined_at_idx on waitlist (joined_at);
+
+-- Added with the X-first join flow: the pass is minted from the handle, and the
+-- wallet arrives last, after the engagement steps.
+alter table waitlist add column if not exists x_username text;
+alter table waitlist add column if not exists quoted     boolean not null default false;
+alter table waitlist add column if not exists liked      boolean not null default false;
+alter table waitlist add column if not exists commented  boolean not null default false;
+
+-- One entry per handle. Partial, so rows predating the flow (which have no
+-- handle) are left alone rather than colliding on null.
+create unique index if not exists waitlist_x_username_key
+  on waitlist (lower(x_username)) where x_username is not null;
