@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { normalizeHandle } from '@/lib/pass';
+import { checkQuote, launchTweetId } from '@/lib/x-verify';
 import {
   countEntries,
   HandleTakenError,
@@ -96,16 +97,27 @@ export async function POST(request: Request) {
     );
   }
 
+  const handle = typeof body.xUsername === 'string' ? normalizeHandle(body.xUsername) : null;
+
+  // Never trust the client's word on the quote link: check it again here, and
+  // store what this check found rather than what the browser claimed.
+  const quote = body.quoteUrl ? await checkQuote(body.quoteUrl, handle, launchTweetId()) : null;
+  if (quote && !quote.ok) {
+    return NextResponse.json({ ok: false, error: quote.error }, { status: 400 });
+  }
+
   try {
     const { total, position, created } = await saveEntry({
       wallet,
       source: body.source === 'mobile' ? 'mobile' : 'desktop',
       passNo: typeof body.passNo === 'string' ? body.passNo.slice(0, 16) : null,
       country: request.headers.get('x-vercel-ip-country'),
-      xUsername: typeof body.xUsername === 'string' ? normalizeHandle(body.xUsername) : null,
-      quoted: body.quoted === true,
+      xUsername: handle,
+      quoted: body.quoted === true || Boolean(quote?.ok),
       liked: body.liked === true,
       commented: body.commented === true,
+      quoteUrl: quote?.url ?? null,
+      quoteVerified: quote?.verified ?? false,
     });
 
     return NextResponse.json(

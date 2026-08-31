@@ -113,13 +113,44 @@ picture and posts another.
 it the claim step falls back to a single follow task rather than pointing at
 nothing.
 
+### The quote step
+
+X has no "quote" intent parameter. What makes the composer attach a quote card
+is a status URL sitting at the end of the post, which is exactly what
+`intent/post?text=…&url=<the whitelist post>` produces. Two things break it, and
+both are avoided here: a second link in the text (X renders the first as a card
+instead of quoting), and the URL not being last.
+
+After posting, people paste the link back. That link is checked against
+`cdn.syndication.twimg.com` — the endpoint X's own embed widget calls, no API
+credentials and no paid tier:
+
+| What the check finds | What happens |
+|---|---|
+| Not a status URL | rejected |
+| A post by a different handle than they signed up with | rejected |
+| No post at that link (X answers 404/400) | rejected |
+| Their post, quoting the whitelist post | accepted, `quote_verified = true` |
+| Their post, quote target not confirmed | accepted, `quote_verified = false` |
+| X unreachable, rate-limited, 5xx | accepted, `quote_verified = false` |
+
+The last row is the rule the rest follows from: reject what can be proven
+wrong, never reject on something that cannot be proven either way. An endpoint
+we do not control having a bad minute is not a reason to turn away a signup.
+
+The check runs debounced as they type, not on blur — blur never fires if
+someone pastes and goes straight for the button. The submit handler runs the
+same check again server-side and stores *its* answer, never the browser's.
+
 ### What the flow can and cannot know
 
-Nothing in a browser can confirm a like, a quote or a reply — that needs the X
-API and an authorised account. Each step opens the real intent and records what
-the visitor says they did, stored in `quoted` / `liked` / `commented`, and the
-copy on the step says exactly that. Treat those columns as claims to check
-against the account before the drop, not as verified facts.
+Likes and replies cannot be confirmed from a browser — that needs the X API and
+an authorised account. Those steps open the real intent and record what the
+visitor says they did, in `liked` / `commented`, and the copy on the step says
+exactly that. Treat them as claims to check before the drop, not as facts.
+
+The quote step is the exception: it produces a link, and a link can be checked.
+See above.
 
 A handle already on the list under a *different* wallet is rejected (409)
 rather than silently overwritten: that is either a typo or someone farming

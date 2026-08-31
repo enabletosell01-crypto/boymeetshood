@@ -12,6 +12,9 @@ export type WaitlistEntry = {
   quoted: boolean;
   liked: boolean;
   commented: boolean;
+  /** The quote post they pasted back, and whether X's embed endpoint agreed. */
+  quoteUrl: string | null;
+  quoteVerified: boolean;
   /** `desktop` (web) or `mobile` (in-app) — which surface they joined from. */
   source: string;
   /** The Hood Pass number the client generated for them, when it sent one. */
@@ -95,6 +98,8 @@ export async function saveEntry(entry: {
   quoted?: boolean;
   liked?: boolean;
   commented?: boolean;
+  quoteUrl?: string | null;
+  quoteVerified?: boolean;
 }): Promise<SaveResult> {
   const sql = db();
   const walletKey = entry.wallet.toLowerCase();
@@ -117,9 +122,11 @@ export async function saveEntry(entry: {
   // second lookup. joined_at is never touched on conflict: the queue belongs to
   // whoever showed up first.
   const upserted = (await sql`
-    insert into waitlist (wallet, wallet_key, source, pass_no, country, x_username, quoted, liked, commented)
+    insert into waitlist (wallet, wallet_key, source, pass_no, country, x_username,
+                          quoted, liked, commented, quote_url, quote_verified)
     values (${entry.wallet}, ${walletKey}, ${entry.source}, ${entry.passNo}, ${entry.country},
-            ${handle}, ${entry.quoted ?? false}, ${entry.liked ?? false}, ${entry.commented ?? false})
+            ${handle}, ${entry.quoted ?? false}, ${entry.liked ?? false}, ${entry.commented ?? false},
+            ${entry.quoteUrl ?? null}, ${entry.quoteVerified ?? false})
     on conflict (wallet_key) do update
       set wallet     = excluded.wallet,
           source     = excluded.source,
@@ -130,6 +137,8 @@ export async function saveEntry(entry: {
           quoted     = waitlist.quoted    or excluded.quoted,
           liked      = waitlist.liked     or excluded.liked,
           commented  = waitlist.commented or excluded.commented,
+          quote_url  = coalesce(excluded.quote_url, waitlist.quote_url),
+          quote_verified = waitlist.quote_verified or excluded.quote_verified,
           updated_at = now()
     returning id, (xmax = 0) as created
   `) as { id: string; created: boolean }[];
@@ -154,7 +163,7 @@ export async function readAllEntries(): Promise<WaitlistEntry[]> {
     select
       row_number() over (order by joined_at, id) as position,
       wallet, source, pass_no, country, joined_at,
-      x_username, quoted, liked, commented
+      x_username, quoted, liked, commented, quote_url, quote_verified
     from waitlist
     order by joined_at, id
   `) as {
@@ -168,6 +177,8 @@ export async function readAllEntries(): Promise<WaitlistEntry[]> {
     quoted: boolean;
     liked: boolean;
     commented: boolean;
+    quote_url: string | null;
+    quote_verified: boolean;
   }[];
 
   return rows.map((row) => ({
@@ -177,6 +188,8 @@ export async function readAllEntries(): Promise<WaitlistEntry[]> {
     quoted: row.quoted,
     liked: row.liked,
     commented: row.commented,
+    quoteUrl: row.quote_url,
+    quoteVerified: row.quote_verified,
     source: row.source,
     passNo: row.pass_no,
     country: row.country,

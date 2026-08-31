@@ -55,10 +55,16 @@ export default function JoinFlow({ open, onClose, source, onJoined }: JoinFlowPr
     liked: false,
     commented: false,
   });
+  const [quote, setQuote] = useState<{
+    url: string;
+    status: 'idle' | 'checking' | 'ok' | 'unconfirmed' | 'error';
+    message: string;
+  }>({ url: '', status: 'idle', message: '' });
   const [result, setResult] = useState<{ position: number; total: number } | null>(null);
   const [origin, setOrigin] = useState('');
 
   const firstField = useRef<HTMLInputElement>(null);
+  const quoteTimer = useRef<number | undefined>(undefined);
 
   useEffect(() => setOrigin(window.location.origin), []);
 
@@ -92,6 +98,7 @@ export default function JoinFlow({ open, onClose, source, onJoined }: JoinFlowPr
     setWallet('');
     setError('');
     setResult(null);
+    setQuote({ url: '', status: 'idle', message: '' });
     setDone({ quoted: false, liked: false, commented: false });
   }, []);
 
@@ -111,6 +118,60 @@ export default function JoinFlow({ open, onClose, source, onJoined }: JoinFlowPr
     setError('');
     setStep('pass');
   };
+
+  /**
+   * Checks the pasted link the moment it lands. The submit handler checks again
+   * server-side — this is so a wrong link is caught while they are still
+   * looking at it, not four fields later.
+   */
+  const verifyQuote = useCallback(
+    async (url: string) => {
+      if (!url.trim()) return setQuote({ url, status: 'idle', message: '' });
+      setQuote({ url, status: 'checking', message: 'CHECKING WITH X…' });
+      try {
+        const res = await fetch('/api/waitlist/verify-quote', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ quoteUrl: url, xUsername: cleanHandle }),
+        });
+        const data = (await res.json()) as {
+          ok?: boolean;
+          verified?: boolean;
+          author?: string | null;
+          error?: string;
+        };
+        if (!data.ok) {
+          setQuote({ url, status: 'error', message: data.error ?? 'That link did not check out.' });
+          return;
+        }
+        setQuote(
+          data.verified
+            ? { url, status: 'ok', message: `VERIFIED · @${data.author} QUOTED THE POST` }
+            : { url, status: 'unconfirmed', message: `POST FOUND · @${data.author} · QUOTE NOT CONFIRMED` }
+        );
+      } catch {
+        setQuote({ url, status: 'unconfirmed', message: 'COULD NOT REACH X — LINK SAVED ANYWAY' });
+      }
+    },
+    [cleanHandle]
+  );
+
+  /**
+   * Checks as they type rather than on blur. Blur never fires if someone pastes
+   * and goes straight for the button, which would let an unchecked — or plainly
+   * wrong — link through the form.
+   */
+  const onQuoteChange = useCallback(
+    (url: string) => {
+      setQuote({ url, status: url.trim() ? 'checking' : 'idle', message: url.trim() ? 'CHECKING WITH X…' : '' });
+      window.clearTimeout(quoteTimer.current);
+      if (!url.trim()) return;
+      quoteTimer.current = window.setTimeout(() => void verifyQuote(url), 600);
+    },
+    [verifyQuote]
+  );
+
+  useEffect(() => () => window.clearTimeout(quoteTimer.current), []);
 
   const openTask = (id: TaskId, url: string) => {
     window.open(url, '_blank', 'noopener,noreferrer');
@@ -132,6 +193,7 @@ export default function JoinFlow({ open, onClose, source, onJoined }: JoinFlowPr
           wallet: value,
           xUsername: cleanHandle,
           passNo: pass?.number ?? null,
+          quoteUrl: quote.url.trim() || null,
           source,
           ...done,
         }),
@@ -154,16 +216,21 @@ export default function JoinFlow({ open, onClose, source, onJoined }: JoinFlowPr
 
   /* --------------------------------------------------------------- tasks */
 
+  // Short, carries the pass, names the account, ends on a hook — and leaves
+  // room for the quoted post's own 23 characters.
   const quoteText = pass
-    ? `Hood Pass ${pass.number} · MOOD · ${pass.mood.key}\n\n${pass.mood.line}\n\n4,444 Boys. One Hood. Real financial utility.`
+    ? `I just claimed my Hood Pass 👀\n\n` +
+      `HOOD PASS ${pass.number} · MOOD · ${pass.mood.key}\n` +
+      `4,444 Boys are gathering on @${X_HANDLE}\n\n` +
+      `Who's getting HOODED? 🔥`
     : '';
 
   const tasks = LAUNCH_TWEET_ID
     ? [
         {
           id: 'quoted' as const,
-          title: 'Quote the drop post',
-          hint: 'Your pass goes in the pretext',
+          title: 'Quote the whitelist post',
+          hint: 'Opens X with your pass already written',
           url: `https://x.com/intent/post?text=${encodeURIComponent(quoteText)}&url=${encodeURIComponent(LAUNCH_POST)}`,
         },
         {
@@ -268,6 +335,9 @@ export default function JoinFlow({ open, onClose, source, onJoined }: JoinFlowPr
               tasks={tasks}
               done={done}
               openTask={openTask}
+              needsQuoteLink={Boolean(LAUNCH_TWEET_ID)}
+              quote={quote}
+              onQuoteChange={onQuoteChange}
               wallet={wallet}
               setWallet={(value) => {
                 setWallet(value);
@@ -547,10 +617,19 @@ function PassReveal({
   );
 }
 
+type QuoteState = {
+  url: string;
+  status: 'idle' | 'checking' | 'ok' | 'unconfirmed' | 'error';
+  message: string;
+};
+
 function Claim({
   tasks,
   done,
   openTask,
+  needsQuoteLink,
+  quote,
+  onQuoteChange,
   wallet,
   setWallet,
   busy,
@@ -560,13 +639,29 @@ function Claim({
   tasks: { id: TaskId; title: string; hint: string; url: string }[];
   done: Record<TaskId, boolean>;
   openTask: (id: TaskId, url: string) => void;
+  needsQuoteLink: boolean;
+  quote: QuoteState;
+  onQuoteChange: (url: string) => void;
   wallet: string;
   setWallet: (value: string) => void;
   busy: boolean;
   onSubmit: () => void;
   onBack: () => void;
 }) {
-  const ready = wallet.trim().length > 0 && !busy;
+  // 'idle' and 'checking' are not good enough: the link has to have come back
+  // from a check before the form will take it.
+  const quoteSettled =
+    !needsQuoteLink || quote.status === 'ok' || quote.status === 'unconfirmed';
+  const ready = wallet.trim().length > 0 && quoteSettled && !busy;
+
+  const quoteTone =
+    quote.status === 'ok'
+      ? LIME
+      : quote.status === 'error'
+        ? '#ff6f86'
+        : quote.status === 'unconfirmed'
+          ? '#ffd23b'
+          : 'rgba(255,255,255,.4)';
 
   return (
     <div>
@@ -630,6 +725,53 @@ function Claim({
             </button>
           );
         })}
+
+        {needsQuoteLink && (
+          <div
+            style={{
+              borderRadius: 18,
+              border: `1px solid ${quote.status === 'ok' ? 'rgba(198,245,17,.4)' : 'rgba(255,255,255,.1)'}`,
+              background: 'rgba(255,255,255,.03)',
+              padding: '13px 15px',
+            }}
+          >
+            <label
+              htmlFor="bmh-quote"
+              style={{
+                display: 'block',
+                fontFamily: MONO,
+                fontSize: 10,
+                letterSpacing: '.18em',
+                color: 'rgba(255,255,255,.5)',
+                marginBottom: 8,
+              }}
+            >
+              PASTE THE LINK TO YOUR QUOTE
+            </label>
+            <input
+              id="bmh-quote"
+              value={quote.url}
+              onChange={(event) => onQuoteChange(event.target.value)}
+              placeholder="https://x.com/you/status/…"
+              spellCheck={false}
+              autoCapitalize="none"
+              autoComplete="off"
+              style={{ ...fieldStyle, paddingLeft: 14, fontSize: 13, borderRadius: 13 }}
+            />
+            <div
+              style={{
+                marginTop: 8,
+                fontFamily: MONO,
+                fontSize: 9.5,
+                letterSpacing: '.12em',
+                lineHeight: 1.6,
+                color: quoteTone,
+              }}
+            >
+              {quote.message || 'POST IT FIRST, THEN COPY THE LINK FROM X AND DROP IT HERE.'}
+            </div>
+          </div>
+        )}
       </div>
 
       <div style={{ height: 1, background: 'rgba(255,255,255,.09)', margin: '20px 0 18px' }} />

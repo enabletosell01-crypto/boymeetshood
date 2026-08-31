@@ -36,3 +36,8 @@ alter table waitlist add column if not exists commented  boolean not null defaul
 -- handle) are left alone rather than colliding on null.
 create unique index if not exists waitlist_x_username_key
   on waitlist (lower(x_username)) where x_username is not null;
+
+-- The quote-RT step: the link people paste back after posting, and whether we
+-- could confirm it against X's public embed endpoint.
+alter table waitlist add column if not exists quote_url      text;
+alter table waitlist add column if not exists quote_verified boolean not null default false;
