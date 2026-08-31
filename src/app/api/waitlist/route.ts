@@ -114,6 +114,7 @@ export async function POST(request: Request) {
       country: request.headers.get('x-vercel-ip-country'),
       xUsername: handle,
       quoted: body.quoted === true || Boolean(quote?.ok),
+      retweeted: body.retweeted === true,
       liked: body.liked === true,
       commented: body.commented === true,
       quoteUrl: quote?.url ?? null,

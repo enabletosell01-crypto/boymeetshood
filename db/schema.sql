@@ -41,3 +41,6 @@ create unique index if not exists waitlist_x_username_key
 -- could confirm it against X's public embed endpoint.
 alter table waitlist add column if not exists quote_url      text;
 alter table waitlist add column if not exists quote_verified boolean not null default false;
+
+-- The plain repost step, alongside quote / like / comment.
+alter table waitlist add column if not exists retweeted boolean not null default false;

@@ -10,6 +10,7 @@ export type WaitlistEntry = {
   wallet: string;
   /** Self-reported engagement steps — see the note on `saveEntry`. */
   quoted: boolean;
+  retweeted: boolean;
   liked: boolean;
   commented: boolean;
   /** The quote post they pasted back, and whether X's embed endpoint agreed. */
@@ -96,6 +97,7 @@ export async function saveEntry(entry: {
   country: string | null;
   xUsername?: string | null;
   quoted?: boolean;
+  retweeted?: boolean;
   liked?: boolean;
   commented?: boolean;
   quoteUrl?: string | null;
@@ -123,9 +125,9 @@ export async function saveEntry(entry: {
   // whoever showed up first.
   const upserted = (await sql`
     insert into waitlist (wallet, wallet_key, source, pass_no, country, x_username,
-                          quoted, liked, commented, quote_url, quote_verified)
+                          quoted, retweeted, liked, commented, quote_url, quote_verified)
     values (${entry.wallet}, ${walletKey}, ${entry.source}, ${entry.passNo}, ${entry.country},
-            ${handle}, ${entry.quoted ?? false}, ${entry.liked ?? false}, ${entry.commented ?? false},
+            ${handle}, ${entry.quoted ?? false}, ${entry.retweeted ?? false}, ${entry.liked ?? false}, ${entry.commented ?? false},
             ${entry.quoteUrl ?? null}, ${entry.quoteVerified ?? false})
     on conflict (wallet_key) do update
       set wallet     = excluded.wallet,
@@ -135,6 +137,7 @@ export async function saveEntry(entry: {
           x_username = coalesce(excluded.x_username, waitlist.x_username),
           -- Steps only ever go from not-done to done.
           quoted     = waitlist.quoted    or excluded.quoted,
+          retweeted  = waitlist.retweeted or excluded.retweeted,
           liked      = waitlist.liked     or excluded.liked,
           commented  = waitlist.commented or excluded.commented,
           quote_url  = coalesce(excluded.quote_url, waitlist.quote_url),
@@ -163,7 +166,7 @@ export async function readAllEntries(): Promise<WaitlistEntry[]> {
     select
       row_number() over (order by joined_at, id) as position,
       wallet, source, pass_no, country, joined_at,
-      x_username, quoted, liked, commented, quote_url, quote_verified
+      x_username, quoted, retweeted, liked, commented, quote_url, quote_verified
     from waitlist
     order by joined_at, id
   `) as {
@@ -175,6 +178,7 @@ export async function readAllEntries(): Promise<WaitlistEntry[]> {
     joined_at: string;
     x_username: string | null;
     quoted: boolean;
+    retweeted: boolean;
     liked: boolean;
     commented: boolean;
     quote_url: string | null;
@@ -186,6 +190,7 @@ export async function readAllEntries(): Promise<WaitlistEntry[]> {
     xUsername: row.x_username,
     wallet: row.wallet,
     quoted: row.quoted,
+    retweeted: row.retweeted,
     liked: row.liked,
     commented: row.commented,
     quoteUrl: row.quote_url,

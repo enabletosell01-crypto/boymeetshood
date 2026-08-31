@@ -31,7 +31,7 @@ const LAUNCH_TWEET_ID = /status\/(\d+)/.exec(LAUNCH_POST)?.[1] ?? '';
 const X_HANDLE = 'boymeetsh00d';
 
 type Step = 'identity' | 'pass' | 'claim' | 'done';
-type TaskId = 'quoted' | 'liked' | 'commented';
+type TaskId = 'quoted' | 'retweeted' | 'liked' | 'commented';
 
 export type JoinFlowProps = {
   open: boolean;
@@ -52,6 +52,7 @@ export default function JoinFlow({ open, onClose, source, onJoined }: JoinFlowPr
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState<Record<TaskId, boolean>>({
     quoted: false,
+    retweeted: false,
     liked: false,
     commented: false,
   });
@@ -99,7 +100,7 @@ export default function JoinFlow({ open, onClose, source, onJoined }: JoinFlowPr
     setError('');
     setResult(null);
     setQuote({ url: '', status: 'idle', message: '' });
-    setDone({ quoted: false, liked: false, commented: false });
+    setDone({ quoted: false, retweeted: false, liked: false, commented: false });
   }, []);
 
   const close = useCallback(() => {
@@ -232,6 +233,12 @@ export default function JoinFlow({ open, onClose, source, onJoined }: JoinFlowPr
           title: 'Quote the whitelist post',
           hint: 'Opens X with your pass already written',
           url: `https://x.com/intent/post?text=${encodeURIComponent(quoteText)}&url=${encodeURIComponent(LAUNCH_POST)}`,
+        },
+        {
+          id: 'retweeted' as const,
+          title: 'Repost it',
+          hint: 'One tap on X',
+          url: `https://x.com/intent/retweet?tweet_id=${LAUNCH_TWEET_ID}`,
         },
         {
           id: 'liked' as const,
