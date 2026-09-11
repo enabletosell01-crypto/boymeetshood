@@ -11,7 +11,8 @@
     "db:setup": "node --env-file-if-exists=.env.local scripts/db-setup.mjs",
     "waitlist": "node --env-file-if-exists=.env.local scripts/waitlist-export.mjs",
     "communities:import": "node --env-file-if-exists=.env.local scripts/communities-import.mjs",
-    "allowlist": "node --env-file-if-exists=.env.local scripts/allowlist-export.mjs"
+    "allowlist": "node --env-file-if-exists=.env.local scripts/allowlist-export.mjs",
+    "admin:password": "node --env-file-if-exists=.env.local scripts/admin-password.mjs"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",

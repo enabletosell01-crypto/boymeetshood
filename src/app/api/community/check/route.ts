@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
+import { getCampaign } from '@/lib/campaign';
 import { isConfigured } from '@/lib/db';
 import {
   checkEligibility,
-  claimsOpen,
   findCommunity,
   isMissingCommunityTables,
   normalizeAddress,
@@ -42,11 +42,12 @@ export async function POST(request: Request) {
   if (!isConfigured()) return NextResponse.json({ ok: false, error: 'Checks are offline.' }, { status: 503 });
 
   try {
-    const result = await checkEligibility(community.slug, wallet.toLowerCase());
+    const [result, campaign] = await Promise.all([checkEligibility(community.slug, wallet.toLowerCase()), getCampaign()]);
     return NextResponse.json(
       {
         ok: true,
-        open: claimsOpen(),
+        open: campaign.live,
+        postUrl: campaign.live ? campaign.postUrl : null,
         ...result,
         ...(result.status === 'claimed' ? { communityName: findCommunity(result.community)?.name ?? result.community } : {}),
       },

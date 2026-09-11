@@ -89,3 +89,24 @@ create unique index if not exists community_claims_author_key
   on community_claims (lower(x_author));
 
 create index if not exists community_claims_community_idx on community_claims (community, id);
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Site settings and the admin panel.
+--
+-- `settings` holds small JSON values the admin panel changes at runtime — the
+-- community campaign (which post, live or not) and the hashed admin login —
+-- so flipping them never needs an env var or a redeploy.
+
+create table if not exists settings (
+  key        text        primary key,
+  value      jsonb       not null,
+  updated_at timestamptz not null default now()
+);
+
+-- Admin sessions. Only a SHA-256 of each token is stored, so a database leak
+-- does not hand out a working cookie.
+create table if not exists admin_sessions (
+  token_hash text        primary key,
+  expires_at timestamptz not null,
+  created_at timestamptz not null default now()
+);

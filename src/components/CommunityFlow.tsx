@@ -27,8 +27,6 @@ import {
  * inside one locked transaction, so nothing this component says is trusted.
  */
 
-const POST_URL = process.env.NEXT_PUBLIC_COMMUNITY_POST_URL?.trim() || '';
-const POST_ID = /status\/(\d+)/.exec(POST_URL)?.[1] ?? '';
 const EVM = /^0x[a-fA-F0-9]{40}$/;
 const RED = '#ff6f86';
 const AMBER = '#ffd23b';
@@ -72,6 +70,8 @@ export default function CommunityFlow({ open, onClose, initialCommunity, onOpenW
   const [step, setStep] = useState<Step>('pick');
   const [statuses, setStatuses] = useState<Status[]>(CONFIGURED);
   const [serverOpen, setServerOpen] = useState<boolean | null>(null);
+  // The collab post is set from /admin_secret and only handed out once live.
+  const [postUrl, setPostUrl] = useState('');
   const [slug, setSlug] = useState<string | null>(null);
   const [wallet, setWallet] = useState('');
   const [check, setCheck] = useState<Check>({ state: 'idle' });
@@ -86,16 +86,18 @@ export default function CommunityFlow({ open, onClose, initialCommunity, onOpenW
   const latestComment = useRef('');
   const deepLinked = useRef(false);
 
-  const claimsOpen = serverOpen ?? Boolean(POST_ID);
+  const claimsOpen = serverOpen === true;
+  const postId = /status\/(\d+)/.exec(postUrl)?.[1] ?? '';
   const selected = statuses.find((s) => s.slug === slug) ?? null;
   const totalCap = statuses.reduce((sum, s) => sum + s.cap, 0);
 
   const loadStatus = useCallback(async () => {
     try {
       const res = await fetch('/api/community', { cache: 'no-store' });
-      const data = (await res.json()) as { open?: boolean; communities?: Status[] };
+      const data = (await res.json()) as { open?: boolean; postUrl?: string | null; communities?: Status[] };
       if (Array.isArray(data.communities)) setStatuses(data.communities);
       if (typeof data.open === 'boolean') setServerOpen(data.open);
+      setPostUrl(typeof data.postUrl === 'string' ? data.postUrl : '');
     } catch {
       /* the tiles keep their configured defaults */
     }
@@ -187,12 +189,14 @@ export default function CommunityFlow({ open, onClose, initialCommunity, onOpenW
         cap?: number;
         slot?: number;
         communityName?: string;
+        postUrl?: string | null;
       };
       if (!res.ok || !data.ok) {
         setCheck({ state: 'error', message: data.error ?? 'Could not check that wallet.' });
         return;
       }
       if (typeof data.open === 'boolean') setServerOpen(data.open);
+      if (typeof data.postUrl === 'string') setPostUrl(data.postUrl);
 
       switch (data.status) {
         case 'eligible':
@@ -281,11 +285,11 @@ export default function CommunityFlow({ open, onClose, initialCommunity, onOpenW
       : step === 'wallet'
         ? 'STEP 1 OF 3 · CHECK'
         : step === 'comment'
-          ? 'STEP 2 OF 3 · COMMENT'
+          ? 'STEP 2 OF 3 · CLAIM'
           : 'SPOT SECURED';
 
   const replyText = selected ? `Holding ${selected.name} — claiming my spot in the Hood 🤝 #BoyMeetsHood` : '';
-  const replyIntent = `https://x.com/intent/post?in_reply_to=${POST_ID}&text=${encodeURIComponent(replyText)}`;
+  const replyIntent = `https://x.com/intent/post?in_reply_to=${postId}&text=${encodeURIComponent(replyText)}`;
 
   return (
     <div
@@ -419,7 +423,7 @@ export default function CommunityFlow({ open, onClose, initialCommunity, onOpenW
                   disabled={!claimsOpen}
                   style={primaryButton(claimsOpen)}
                 >
-                  {claimsOpen ? 'CONTINUE — CLAIM WITH A COMMENT' : 'CLAIMS OPEN SOON'}
+                  {claimsOpen ? 'CLAIM WHITELIST SPOT' : 'CLAIMS OPEN SOON'}
                 </button>
               ) : check.state === 'claimed' ? (
                 <button onClick={close} style={primaryButton(true)}>
@@ -448,10 +452,46 @@ export default function CommunityFlow({ open, onClose, initialCommunity, onOpenW
           {step === 'comment' && selected && (
             <div>
               <CommunityBadge community={selected} />
-              {title('Comment to claim')}
-              {blurb(
-                'Reply to the BoyMeetsHood post, then paste the link to your reply here. That comment is your claim — first come, first served.'
-              )}
+              {title('Claim your spot')}
+              {blurb('Two things and the spot is yours: the wallet you just checked, and a comment on our latest post. First come, first served.')}
+
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 13,
+                  minHeight: 62,
+                  padding: '0 15px',
+                  marginBottom: 9,
+                  borderRadius: 18,
+                  border: '1px solid rgba(198,245,17,.45)',
+                  background: 'rgba(198,245,17,.08)',
+                }}
+              >
+                <StepDot done label="1" />
+                <span style={{ minWidth: 0 }}>
+                  <span style={{ display: 'block', fontSize: 15, fontWeight: 600 }}>Your wallet</span>
+                  <span style={{ display: 'block', fontFamily: MONO, fontSize: 10, color: 'rgba(255,255,255,.5)', marginTop: 2 }}>
+                    {short(wallet.trim())} · {selected.name.toUpperCase()} HOLDER
+                  </span>
+                </span>
+                <button
+                  onClick={() => setStep('wallet')}
+                  style={{
+                    marginLeft: 'auto',
+                    padding: 6,
+                    border: 'none',
+                    background: 'transparent',
+                    color: 'rgba(255,255,255,.45)',
+                    fontFamily: MONO,
+                    fontSize: 9.5,
+                    letterSpacing: '.14em',
+                    cursor: 'pointer',
+                  }}
+                >
+                  CHANGE
+                </button>
+              </div>
 
               <a
                 href={replyIntent}
@@ -471,9 +511,9 @@ export default function CommunityFlow({ open, onClose, initialCommunity, onOpenW
                   textDecoration: 'none',
                 }}
               >
-                <StepDot done={opened} label="1" />
+                <StepDot done={opened} label="2" />
                 <span style={{ minWidth: 0 }}>
-                  <span style={{ display: 'block', fontSize: 15, fontWeight: 600 }}>Comment on the post</span>
+                  <span style={{ display: 'block', fontSize: 15, fontWeight: 600 }}>Comment on our latest post</span>
                   <span style={{ display: 'block', fontFamily: MONO, fontSize: 10, color: 'rgba(255,255,255,.42)', marginTop: 2 }}>
                     Opens X with a reply ready to send
                   </span>
@@ -493,7 +533,7 @@ export default function CommunityFlow({ open, onClose, initialCommunity, onOpenW
                 }}
               >
                 <label htmlFor="bmh-comment" style={fieldLabel}>
-                  2 · PASTE THE LINK TO YOUR COMMENT
+                  PASTE THE LINK TO YOUR COMMENT
                 </label>
                 <input
                   id="bmh-comment"

@@ -209,3 +209,35 @@ export async function checkReply(link: unknown, targetId: string): Promise<Reply
 
   return evaluateReply(lookup.tweet, targetId, parsed);
 }
+
+/* --------------------------------------------------------- admin lookup */
+
+export type PostLookup =
+  | { ok: true; id: string; url: string; author: string; text: string; confirmed: boolean }
+  | { ok: false; error: string };
+
+/**
+ * For the admin panel: is this a real post, and whose is it? If X does not
+ * answer the link is still accepted, flagged unconfirmed — the admin can see
+ * that and double-check, which is not true of a stranger claiming a spot.
+ */
+export async function lookupPost(link: unknown): Promise<PostLookup> {
+  const parsed = parseStatusUrl(link);
+  if (!parsed) return { ok: false, error: 'That is not a link to a post on X.' };
+
+  const lookup = await fetchTweet(parsed.id);
+  if (lookup.kind === 'missing') return { ok: false, error: 'No post on X at that link.' };
+  if (lookup.kind === 'unknown') {
+    return { ok: true, confirmed: false, id: parsed.id, url: parsed.url, author: parsed.author, text: '' };
+  }
+
+  const author = lookup.tweet.user?.screen_name ?? parsed.author;
+  return {
+    ok: true,
+    confirmed: true,
+    id: parsed.id,
+    url: `https://x.com/${author}/status/${parsed.id}`,
+    author,
+    text: lookup.tweet.text ?? '',
+  };
+}

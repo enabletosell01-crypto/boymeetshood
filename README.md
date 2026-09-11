@@ -151,9 +151,10 @@ transaction and never touches spots already claimed. Names and caps live in
 `src/data/communities.json` — change a cap there and run the import with no
 arguments to sync it.
 
-Claims stay **closed until `NEXT_PUBLIC_COMMUNITY_POST_URL` is set** (then
-redeploy). Before that the tiles and the eligibility check still work, so
-people can check early; nobody can take a spot.
+Claims stay **closed until someone goes live from the admin panel** (below).
+Before that the tiles and the eligibility check still work, so people can
+check early; nobody can take a spot. The collab post is only returned by the
+API once it is live, so the start is the same moment for everyone.
 
 ### Links for each community
 
@@ -180,6 +181,32 @@ npm run allowlist -- --csv     # with community, slot, X account, comment link
 
 Or over HTTP with the admin token:
 `/api/community/export?format=txt` (also `csv`, or JSON by default).
+
+### Admin panel
+
+`/admin_secret` — sign in, paste the collab post, **Save**, then **Go live**.
+Claims open the moment it is live; **Stop** closes them again, and spots
+already claimed are kept. No env var and no redeploy: the post and the live
+flag sit in the `settings` table. The panel also shows spots claimed per
+community (refreshing every 15s) and downloads the allowlist as `.txt` or
+`.csv`.
+
+On a claim the holder sees two steps — **1 · their wallet**, already checked,
+and **2 · comment on the post**, then paste the comment's link — and confirms.
+
+The login is never in the code; this repo is public. Set or change it with:
+
+```bash
+npm run admin:password -- admin
+```
+
+It prompts for the password (or reads `ADMIN_PASSWORD`), stores only a scrypt
+hash in `settings`, and signs out every open session. Sessions are random
+tokens kept only as SHA-256 hashes in `admin_sessions`, sent as an HttpOnly,
+SameSite=Strict cookie that lasts 7 days. Every admin POST must carry a
+same-origin `Origin` header, sign-in is rate-limited, and if the setting ever
+cannot be read the public site treats claims as closed — a database hiccup can
+never be what opens first-come-first-served early.
 
 ### Logos
 

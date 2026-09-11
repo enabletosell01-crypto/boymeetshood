@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
+import { getCampaign } from '@/lib/campaign';
 import { isConfigured } from '@/lib/db';
-import { claimsOpen, commentConflict, communityPostId } from '@/lib/community';
+import { commentConflict } from '@/lib/community';
 import { rateLimited } from '@/lib/rate-limit';
 import { checkReply } from '@/lib/x-verify';
 
@@ -13,7 +14,8 @@ export const dynamic = 'force-dynamic';
  * this answer is for the UI, never the record.
  */
 export async function POST(request: Request) {
-  if (!claimsOpen()) {
+  const campaign = await getCampaign();
+  if (!campaign.live) {
     return NextResponse.json({ ok: false, error: 'Claims are not open yet.' }, { status: 403 });
   }
   if (rateLimited(request, 'community-verify', 30)) {
@@ -27,7 +29,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: 'Invalid JSON body.' }, { status: 400 });
   }
 
-  const reply = await checkReply(body.commentUrl, communityPostId());
+  const reply = await checkReply(body.commentUrl, campaign.postId);
   if (!reply.ok) return NextResponse.json(reply, { headers: { 'Cache-Control': 'no-store' } });
 
   if (isConfigured()) {

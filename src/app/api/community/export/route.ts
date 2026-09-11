@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { isConfigured } from '@/lib/db';
 import { findCommunity, isMissingCommunityTables, readClaims } from '@/lib/community';
+import { hasAdminSession } from '@/lib/admin-auth';
 import { isAuthorizedAdmin } from '@/lib/waitlist';
 
 export const runtime = 'nodejs';
@@ -15,12 +16,13 @@ const csvCell = (value: string | number | null) => `"${String(value ?? '').repla
  *   /api/community/export?token=…&format=csv                      full detail
  *   /api/community/export?token=…&format=txt                      one address per line, for the mint list
  *
- * Also accepts `Authorization: Bearer <token>`.
+ * Also accepts `Authorization: Bearer <token>`, or a signed-in /admin_secret
+ * session — which is what the panel's download buttons use.
  */
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const bearer = request.headers.get('authorization')?.replace(/^Bearer\s+/i, '') ?? null;
-  if (!isAuthorizedAdmin(bearer ?? url.searchParams.get('token'))) {
+  if (!isAuthorizedAdmin(bearer ?? url.searchParams.get('token')) && !(await hasAdminSession(request))) {
     return NextResponse.json({ ok: false, error: 'Unauthorized.' }, { status: 401 });
   }
   if (!isConfigured()) return NextResponse.json({ ok: false, error: 'DATABASE_URL is not set.' }, { status: 503 });

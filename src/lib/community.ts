@@ -18,15 +18,6 @@ export function findCommunity(slug: unknown): Community | null {
   return typeof slug === 'string' ? (COMMUNITIES.find((c) => c.slug === slug) ?? null) : null;
 }
 
-/**
- * The post holders reply to. Claims stay closed until it is set, so the site
- * can ship — and people can check eligibility — before first-come-first-served
- * actually starts.
- */
-export const communityPostUrl = () => process.env.NEXT_PUBLIC_COMMUNITY_POST_URL?.trim() ?? '';
-export const communityPostId = () => /status\/(\d+)/.exec(communityPostUrl())?.[1] ?? '';
-export const claimsOpen = () => communityPostId() !== '';
-
 const EVM = /^0x[a-fA-F0-9]{40}$/;
 
 /** Snapshots are keyed by address, so ENS names cannot be matched here. */
@@ -38,7 +29,7 @@ export function normalizeAddress(input: unknown): string | null {
 
 /** True when the database is reachable but `npm run db:setup` never ran. */
 export function isMissingCommunityTables(error: unknown): boolean {
-  return /relation "(communities|community_holders|community_claims)" does not exist/i.test(
+  return /relation "(communities|community_holders|community_claims|settings)" does not exist/i.test(
     error instanceof Error ? error.message : String(error)
   );
 }

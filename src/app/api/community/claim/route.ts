@@ -1,10 +1,9 @@
 import { NextResponse } from 'next/server';
+import { getCampaign } from '@/lib/campaign';
 import { isConfigured } from '@/lib/db';
 import {
   ClaimError,
   claimSpot,
-  claimsOpen,
-  communityPostId,
   findCommunity,
   isMissingCommunityTables,
   normalizeAddress,
@@ -20,7 +19,8 @@ export const dynamic = 'force-dynamic';
  * a spot left, all decided inside one locked transaction in `claimSpot`.
  */
 export async function POST(request: Request) {
-  if (!claimsOpen()) {
+  const campaign = await getCampaign();
+  if (!campaign.live) {
     return NextResponse.json({ ok: false, error: 'Claims are not open yet.' }, { status: 403 });
   }
   if (!isConfigured()) return NextResponse.json({ ok: false, error: 'Claims are offline.' }, { status: 503 });
@@ -42,7 +42,7 @@ export async function POST(request: Request) {
   if (!wallet) return NextResponse.json({ ok: false, error: 'Paste a 0x wallet address.' }, { status: 400 });
 
   // Never take the browser's word for the comment: check it again here.
-  const reply = await checkReply(body.commentUrl, communityPostId());
+  const reply = await checkReply(body.commentUrl, campaign.postId);
   if (!reply.ok) {
     return NextResponse.json({ ok: false, error: reply.error }, { status: reply.retry ? 503 : 400 });
   }
