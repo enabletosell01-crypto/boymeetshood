@@ -9,7 +9,9 @@
     "start": "next start",
     "designs": "node scripts/build-designs.mjs",
     "db:setup": "node --env-file-if-exists=.env.local scripts/db-setup.mjs",
-    "waitlist": "node --env-file-if-exists=.env.local scripts/waitlist-export.mjs"
+    "waitlist": "node --env-file-if-exists=.env.local scripts/waitlist-export.mjs",
+    "communities:import": "node --env-file-if-exists=.env.local scripts/communities-import.mjs",
+    "allowlist": "node --env-file-if-exists=.env.local scripts/allowlist-export.mjs"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",

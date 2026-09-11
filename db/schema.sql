@@ -44,3 +44,48 @@ alter table waitlist add column if not exists quote_verified boolean not null de
 
 -- The plain repost step, alongside quote / like / comment.
 alter table waitlist add column if not exists retweeted boolean not null default false;
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Partner-community allowlist.
+--
+-- Holders of a partner collection claim one of a fixed number of spots per
+-- community, first come first served. Eligibility is a holder snapshot loaded
+-- by `npm run communities:import`; nothing here talks to a chain.
+
+create table if not exists communities (
+  slug  text    primary key,
+  name  text    not null,
+  cap   integer not null default 20 check (cap >= 0)
+);
+
+-- Only the address is kept. Balances in the source CSVs are dropped on import.
+create table if not exists community_holders (
+  community  text not null references communities (slug) on delete cascade,
+  wallet_key text not null,
+  primary key (community, wallet_key)
+);
+
+create index if not exists community_holders_wallet_idx on community_holders (wallet_key);
+
+create table if not exists community_claims (
+  id          bigint generated always as identity primary key,
+  community   text        not null references communities (slug),
+  wallet      text        not null,
+  -- One spot per wallet across every community: a second claim would spend a
+  -- spot another holder could have had, for a wallet already on the list.
+  wallet_key  text        not null unique,
+  -- The reply that paid for the spot. One comment, one spot.
+  comment_id  text        not null unique,
+  comment_url text        not null,
+  x_author    text        not null,
+  country     text,
+  claimed_at  timestamptz not null default now()
+);
+
+-- One spot per X account. Without a wallet connection anyone can paste an
+-- address from a public holder list, so this is what stops a single account
+-- from sweeping a community on other people's behalf.
+create unique index if not exists community_claims_author_key
+  on community_claims (lower(x_author));
+
+create index if not exists community_claims_community_idx on community_claims (community, id);

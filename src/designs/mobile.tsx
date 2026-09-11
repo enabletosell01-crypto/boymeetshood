@@ -1,7 +1,8 @@
 'use client';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { useCallback, useRef, useState, type ComponentType } from 'react';
+import { useCallback, useEffect, useRef, useState, type ComponentType } from 'react';
+import CommunityFlow from '@/components/CommunityFlow';
 import JoinFlow from '@/components/JoinFlow';
 import { encodePassToken, hashIdentity, passFromHash, toDesignPass } from '@/lib/pass';
 import { fetchWaitlistTotal } from '@/lib/waitlist-client';
@@ -95,6 +96,7 @@ class MobileApp extends Base {
     return {
       ...vals,
       goWaitlist: waitlist,
+      onOpenCommunity: () => this.props.onOpenCommunity?.(),
       tabs: swap(vals.tabs),
       jumps: swap(vals.jumps),
       mintLive: live,
@@ -112,7 +114,24 @@ const App = MobileApp as unknown as ComponentType<Record<string, unknown>>;
 
 export default function MobileDesign() {
   const [joinOpen, setJoinOpen] = useState(false);
+  const [communityOpen, setCommunityOpen] = useState(false);
+  const [communityInitial, setCommunityInitial] = useState<string | null>(null);
   const app = useRef<any>(null);
+
+  // Same deep link as desktop: `?community=<slug>` opens that community.
+  useEffect(() => {
+    const requested = new URLSearchParams(window.location.search).get('community');
+    if (requested === null) return;
+    if (requested === 'boymeetshood') return setJoinOpen(true);
+    setCommunityInitial(requested || null);
+    setCommunityOpen(true);
+  }, []);
+
+  const closeCommunity = useCallback(() => setCommunityOpen(false), []);
+  const waitlistFromCommunity = useCallback(() => {
+    setCommunityOpen(false);
+    setJoinOpen(true);
+  }, []);
 
   /**
    * Hand the finished pass back to the design so the app agrees it happened:
@@ -138,7 +157,14 @@ export default function MobileDesign() {
         splash={introEnabled && defaultProps.splash}
         glitch={introEnabled && defaultProps.glitch}
         onOpenJoin={() => setJoinOpen(true)}
+        onOpenCommunity={() => setCommunityOpen(true)}
         __dcTemplate={template}
+      />
+      <CommunityFlow
+        open={communityOpen}
+        onClose={closeCommunity}
+        initialCommunity={communityInitial}
+        onOpenWaitlist={waitlistFromCommunity}
       />
       <JoinFlow
         open={joinOpen}

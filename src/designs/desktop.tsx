@@ -1,7 +1,8 @@
 'use client';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { useCallback, useRef, useState, type ComponentType } from 'react';
+import { useCallback, useEffect, useRef, useState, type ComponentType } from 'react';
+import CommunityFlow from '@/components/CommunityFlow';
 import JoinFlow from '@/components/JoinFlow';
 import { fetchWaitlistTotal } from '@/lib/waitlist-client';
 import RawLogic from './desktop.logic';
@@ -40,6 +41,10 @@ class DesktopSite extends Base {
         event?.preventDefault?.();
         this.props.onOpenJoin?.();
       },
+      onOpenCommunity: (event: any) => {
+        event?.preventDefault?.();
+        this.props.onOpenCommunity?.();
+      },
     };
   }
 
@@ -52,7 +57,26 @@ const Site = DesktopSite as unknown as ComponentType<Record<string, unknown>>;
 
 export default function DesktopDesign() {
   const [joinOpen, setJoinOpen] = useState(false);
+  const [communityOpen, setCommunityOpen] = useState(false);
+  const [communityInitial, setCommunityInitial] = useState<string | null>(null);
   const site = useRef<any>(null);
+
+  // `?community=normies` opens straight onto that community's check, so each
+  // partner can be handed its own link. `?community=boymeetshood` is the
+  // open waitlist, and a bare `?community` shows every tile.
+  useEffect(() => {
+    const requested = new URLSearchParams(window.location.search).get('community');
+    if (requested === null) return;
+    if (requested === 'boymeetshood') return setJoinOpen(true);
+    setCommunityInitial(requested || null);
+    setCommunityOpen(true);
+  }, []);
+
+  const closeCommunity = useCallback(() => setCommunityOpen(false), []);
+  const waitlistFromCommunity = useCallback(() => {
+    setCommunityOpen(false);
+    setJoinOpen(true);
+  }, []);
 
   const onJoined = useCallback((total: number) => {
     // Keep the design's queue label honest once a real join lands.
@@ -68,7 +92,14 @@ export default function DesktopDesign() {
         splashEnabled={introEnabled && defaultProps.splashEnabled}
         glitchIntro={introEnabled && defaultProps.glitchIntro}
         onOpenJoin={() => setJoinOpen(true)}
+        onOpenCommunity={() => setCommunityOpen(true)}
         __dcTemplate={template}
+      />
+      <CommunityFlow
+        open={communityOpen}
+        onClose={closeCommunity}
+        initialCommunity={communityInitial}
+        onOpenWaitlist={waitlistFromCommunity}
       />
       <JoinFlow
         open={joinOpen}

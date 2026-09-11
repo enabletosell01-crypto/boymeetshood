@@ -1,5 +1,5 @@
 import { timingSafeEqual } from 'node:crypto';
-import { neon } from '@neondatabase/serverless';
+import { db, isConfigured } from './db';
 
 export type WaitlistEntry = {
   /** Queue position, 1-based, by arrival. */
@@ -27,23 +27,7 @@ export type WaitlistEntry = {
 
 export type SaveResult = { total: number; position: number; created: boolean };
 
-/* ------------------------------------------------------------- connection */
-
-/**
- * Neon's HTTP driver: one stateless request per query, which is what a
- * serverless function wants — no pool to warm up and nothing to leak between
- * invocations. Runtime queries go through the pooled URL.
- */
-let client: ReturnType<typeof neon> | null = null;
-
-function db() {
-  const url = process.env.DATABASE_URL;
-  if (!url) throw new Error('DATABASE_URL is not set');
-  if (!client) client = neon(url);
-  return client;
-}
-
-export const isConfigured = () => Boolean(process.env.DATABASE_URL);
+export { isConfigured };
 
 /** True when the database is reachable but `npm run db:setup` never ran. */
 export function isMissingTable(error: unknown): boolean {

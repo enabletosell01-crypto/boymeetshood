@@ -224,6 +224,42 @@ function splitHelmet(template, name) {
   return { css: styles.join('\n').trim(), body: body.trim() };
 }
 
+/**
+ * Community allowlist entry points. Each calls `onOpenCommunity`, which the
+ * wrapper in src/designs/*.tsx points at CommunityFlow. The desktop hero copy
+ * reuses SUBMIT WAITLIST's own ghost style so the row still reads as one set.
+ */
+const HERO_GHOST_STYLE =
+  "cursor:pointer;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.2);color:#fff;font-family:'Baloo 2',cursive;font-weight:700;font-size:18px;padding:18px 34px;border-radius:22px;transition:transform .2s cubic-bezier(.2,1.4,.4,1)";
+const HERO_GHOST_HOVER =
+  'transform:translateY(-3px);background:linear-gradient(140deg,#1b2a4d,#2a1a4a);border-color:rgba(124,92,255,.6);animation:hmbHoverGlitch .55s steps(5,end) infinite';
+
+function communityEntry(markup, name) {
+  if (name === 'desktop') {
+    const hero = replaceOnce(
+      markup,
+      '>SUBMIT WAITLIST</button>',
+      `>SUBMIT WAITLIST</button>\n        <button sc-camel-on-click="{{ onOpenCommunity }}" style="${HERO_GHOST_STYLE}" style-hover="${HERO_GHOST_HOVER}">CHECK YOUR COMMUNITY</button>`,
+      'desktop hero gets the community check'
+    );
+    return replaceOnce(
+      hero,
+      '>Submit Waitlist</button>',
+      '>Submit Waitlist</button><button sc-camel-on-click="{{ onOpenCommunity }}" style="border:none;background:transparent;cursor:pointer;color:var(--lime,#c6f511);font-size:14px;text-align:left;padding:0;font-family:inherit">Check Your Community</button>',
+      'desktop footer gets the community check'
+    );
+  }
+
+  const waitlist = '<button sc-camel-on-click="{{ goWaitlist }}" style="{{ waitBtnStyle }}">{{ waitBtnLabel }}</button>';
+  return replaceOnce(
+    markup,
+    waitlist,
+    waitlist +
+      '\n                <button sc-camel-on-click="{{ onOpenCommunity }}" style="width:100%;min-height:52px;border-radius:18px;border:1px solid rgba(198,245,17,.35);background:rgba(198,245,17,.06);color:var(--lime,#c6f511);font-family:\'Baloo 2\',cursive;font-weight:800;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:9px" style-hover="background:rgba(198,245,17,.12)"><span style="width:6px;height:6px;border-radius:50%;background:var(--lime,#c6f511);animation:hmbPulse 2.4s ease-in-out infinite"></span>CHECK YOUR COMMUNITY</button>',
+    'mobile home gets the community check'
+  );
+}
+
 /* ------------------------------------------------------------------ desktop */
 
 function buildDesktop() {
@@ -241,7 +277,7 @@ function buildDesktop() {
   return {
     name: 'desktop',
     css: finish(css),
-    template: copy,
+    template: communityEntry(copy, 'desktop'),
     logic: shareLink(passCode(finish(logic), 'desktop'), 'desktop'),
     defaults,
   };
@@ -361,6 +397,7 @@ function buildMobile() {
 
   screen = gateCountdown(screen);
   screen = dropInviteCode(screen);
+  screen = communityEntry(screen, 'mobile');
 
   // The bezel gave the screen its height; now the viewport does.
   const shell =

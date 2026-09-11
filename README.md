@@ -92,6 +92,102 @@ showed up first, and a `pass_no` already on file survives a re-submit that
 sends none. No IP address is stored; only the coarse country header Vercel
 provides.
 
+## Community allowlist
+
+"Check your community" — the hero button on desktop, the pulsing button under
+JOIN THE WAITLIST on mobile, and a footer link. Holders of a partner
+collection claim one of **20 spots per community, first come first served**.
+No wallet connection at any point:
+
+```
+pick community → paste wallet → snapshot check → comment on the post
+               → paste the comment link → verified → spot confirmed
+```
+
+`src/components/CommunityFlow.tsx` is the UI; `src/lib/community.ts` holds
+every rule; the routes are thin wrappers under `src/app/api/community/`.
+
+| Rule | Enforced by |
+|---|---|
+| Wallet must be in that community's snapshot | `community_holders`, checked inside the claim |
+| 20 spots per community | row lock + count in one transaction |
+| One spot per wallet, across all communities | unique `wallet_key` |
+| One spot per X account | unique `lower(x_author)` |
+| One spot per comment | unique `comment_id` |
+| Comment must be a direct reply to the post | `checkReply` in `src/lib/x-verify.ts` |
+
+**Why the X-account rule exists.** Without a wallet connection anyone can paste
+an address straight out of a public holder list. That only ever puts *the
+holder's* wallet on the list — the paster gains nothing — but without a limit
+one person could drain a community's 20 spots on strangers' behalf. Tying each
+spot to a distinct public X account and a distinct reply makes that cost 20
+accounts and 20 visible replies.
+
+**Why it fails closed.** The waitlist quote check lets people through when X
+does not answer, because the waitlist is unlimited. These spots are not: an
+unverifiable comment is refused with "try again in a minute" rather than
+spending a spot nobody checked.
+
+**Races.** `claimSpot` takes a row lock on the community, then inserts only if
+the count is under the cap. Tested with 30 simultaneous claims against a
+20-spot community: exactly 20 succeed, slots 1–20 with no repeats, the other
+10 are told "full", and no failed attempt consumes a spot.
+
+### Running it
+
+```bash
+npm run db:setup                       # tables (idempotent)
+npm run communities:import -- \
+  stonkbrokers=~/Downloads/stonkbrokers.csv \
+  "chainmancers=~/Downloads/chain mancers.csv" \
+  quotrons=~/Downloads/quotrons.csv \
+  argonauts=~/Downloads/argonaut.csv \
+  normies=~/Downloads/normies.csv
+```
+
+Only the address column is read; balances are dropped. Burn and null
+addresses are skipped. Re-importing a community replaces its snapshot in one
+transaction and never touches spots already claimed. Names and caps live in
+`src/data/communities.json` — change a cap there and run the import with no
+arguments to sync it.
+
+Claims stay **closed until `NEXT_PUBLIC_COMMUNITY_POST_URL` is set** (then
+redeploy). Before that the tiles and the eligibility check still work, so
+people can check early; nobody can take a spot.
+
+### Links for each community
+
+`?community=<slug>` opens straight onto that community's wallet check, so each
+partner can be handed its own link:
+
+```
+https://boymeetshood.xyz/?community=stonkbrokers
+https://boymeetshood.xyz/?community=chainmancers
+https://boymeetshood.xyz/?community=quotrons
+https://boymeetshood.xyz/?community=argonauts
+https://boymeetshood.xyz/?community=normies
+https://boymeetshood.xyz/?community            all tiles
+https://boymeetshood.xyz/?community=boymeetshood   the open waitlist
+```
+
+### Getting the list for the mint side
+
+```bash
+npm run allowlist              # table by community, with totals
+npm run allowlist -- --txt     # one address per line — merge into the mint list
+npm run allowlist -- --csv     # with community, slot, X account, comment link
+```
+
+Or over HTTP with the admin token:
+`/api/community/export?format=txt` (also `csv`, or JSON by default).
+
+### Logos
+
+Tiles show a monogram until a logo is set. Drop the files in
+`public/assets/communities/` and point `logo` at them in
+`src/data/communities.json`. They render with `image-rendering: pixelated`,
+so small pixel-art files stay crisp.
+
 ## The join flow
 
 `src/components/JoinFlow.tsx`. One implementation, opened from every waitlist

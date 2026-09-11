@@ -23,3 +23,9 @@ VERCEL-ENV.txt
 # Exported waitlist data — contains wallet addresses
 boymeetshood-waitlist.csv
 boymeetshood-waitlist.json
+boymeetshood-allowlist.csv
+boymeetshood-allowlist.txt
+
+# Holder snapshots, if kept next to the code. They go into Neon via
+# `npm run communities:import`, never into git.
+/snapshots/
