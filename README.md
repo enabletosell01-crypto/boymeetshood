@@ -188,7 +188,10 @@ Vercel Blob store (public), uploaded with a random suffix so a replacement gets
 a fresh URL instead of a stale CDN copy; `logo` in `src/data/communities.json`
 holds the URL. The token is only needed to upload — the site just loads the
 public URL, so no Blob variable is required on the deployment. A file in
-`public/assets/communities/` works the same way. Logos render with
+`public/assets/` works the same way — four of the five live there. Everything
+under `/assets` is served `immutable` for a year (`next.config.ts`), so to
+replace a logo use a **new filename** rather than overwriting the old one, or
+returning visitors keep seeing the old image. Logos render with
 `image-rendering: pixelated`, so pixel art stays crisp.
 
 ## The join flow

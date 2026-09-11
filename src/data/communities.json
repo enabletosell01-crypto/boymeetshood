@@ -5,7 +5,7 @@
       "slug": "stonkbrokers",
       "name": "Stonkbrokers",
       "accent": "#ff7a1a",
-      "logo": null
+      "logo": "/assets/stonkbrokers.png"
     },
     {
       "slug": "chainmancers",
@@ -17,19 +17,19 @@
       "slug": "quotrons",
       "name": "Quotrons",
       "accent": "#7ee03a",
-      "logo": null
+      "logo": "/assets/QuoTRonS.png"
     },
     {
       "slug": "argonauts",
       "name": "Argonauts",
       "accent": "#d0ae62",
-      "logo": null
+      "logo": "/assets/argonauts.png"
     },
     {
       "slug": "normies",
       "name": "Normies",
       "accent": "#dfe1e4",
-      "logo": null
+      "logo": "/assets/normies.png"
     }
   ]
 }
