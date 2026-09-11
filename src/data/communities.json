@@ -1,10 +1,35 @@
 {
   "cap": 20,
   "communities": [
-    { "slug": "stonkbrokers", "name": "Stonkbrokers", "accent": "#ff7a1a", "logo": null },
-    { "slug": "chainmancers", "name": "Chain Mancers", "accent": "#e8892f", "logo": null },
-    { "slug": "quotrons", "name": "Quotrons", "accent": "#7ee03a", "logo": null },
-    { "slug": "argonauts", "name": "Argonauts", "accent": "#d0ae62", "logo": null },
-    { "slug": "normies", "name": "Normies", "accent": "#dfe1e4", "logo": null }
+    {
+      "slug": "stonkbrokers",
+      "name": "Stonkbrokers",
+      "accent": "#ff7a1a",
+      "logo": null
+    },
+    {
+      "slug": "chainmancers",
+      "name": "Chain Mancers",
+      "accent": "#e8892f",
+      "logo": "https://cyaxnzjyhmqqhqal.public.blob.vercel-storage.com/communities/chainmancers-Gg8RYmcREwFhG7Y4QSk1yGRbsTLHDS.png"
+    },
+    {
+      "slug": "quotrons",
+      "name": "Quotrons",
+      "accent": "#7ee03a",
+      "logo": null
+    },
+    {
+      "slug": "argonauts",
+      "name": "Argonauts",
+      "accent": "#d0ae62",
+      "logo": null
+    },
+    {
+      "slug": "normies",
+      "name": "Normies",
+      "accent": "#dfe1e4",
+      "logo": null
+    }
   ]
 }

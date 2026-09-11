@@ -183,10 +183,13 @@ Or over HTTP with the admin token:
 
 ### Logos
 
-Tiles show a monogram until a logo is set. Drop the files in
-`public/assets/communities/` and point `logo` at them in
-`src/data/communities.json`. They render with `image-rendering: pixelated`,
-so small pixel-art files stay crisp.
+Tiles show a monogram until a logo is set. Logos are hosted on the project's
+Vercel Blob store (public), uploaded with a random suffix so a replacement gets
+a fresh URL instead of a stale CDN copy; `logo` in `src/data/communities.json`
+holds the URL. The token is only needed to upload — the site just loads the
+public URL, so no Blob variable is required on the deployment. A file in
+`public/assets/communities/` works the same way. Logos render with
+`image-rendering: pixelated`, so pixel art stays crisp.
 
 ## The join flow
 
